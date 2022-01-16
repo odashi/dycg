@@ -14,3 +14,4 @@ A dynamic computation graph library.
 """
 
 [dependencies]
+scoped-tls-hkt = "0.1.2"
