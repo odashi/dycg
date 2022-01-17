@@ -27,7 +27,7 @@ impl Shape {
     pub fn dimension(&self, index: usize) -> Result<usize> {
         if index >= self.ndims {
             return Err(Error::OutOfRange(format!(
-                "index must be lower than {}, but got {}.",
+                "Index must be lower than {}, but got {}.",
                 self.ndims, index
             )));
         }

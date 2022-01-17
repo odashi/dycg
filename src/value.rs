@@ -13,7 +13,7 @@ pub(crate) struct Value {
 impl Value {
     pub(crate) fn new(shape: Shape, values: Vec<f32>) -> Result<Self> {
         if values.len() != shape.num_values() {
-            return Err(Error::SizeMismatched(format!(
+            return Err(Error::InvalidLength(format!(
                 "shape required {} values, but got {} values.",
                 shape.num_values(),
                 values.len(),

@@ -4,8 +4,9 @@ use std::fmt;
 #[derive(Clone, Debug)]
 pub enum Error {
     OutOfRange(String),
-    ShapeMismatched(String),
-    SizeMismatched(String),
+    InvalidAddress(String),
+    InvalidLength(String),
+    InvalidShape(String),
 }
 
 impl fmt::Display for Error {
