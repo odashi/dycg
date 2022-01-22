@@ -2,44 +2,65 @@ use crate::error::Error;
 use crate::result::Result;
 use std::fmt;
 
-/// Maximum ndims of dimensions.
-const MAX_SIZE: usize = 8;
+/// Maximum number of dimensions.
+const MAX_LENGTH: usize = 8;
 
 /// Shape of a value.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Shape {
-    ndims: usize,
-    dims: [usize; MAX_SIZE],
+    /// Number of dimensions of the shape.
+    /// Only values in `dimensions_` and `strides_` with indices smaller than `length_` are available.
+    length_: usize,
+
+    /// Number of values for each dimension.
+    dimensions_: [usize; MAX_LENGTH],
+
+    /// Interval (number of values) to the next value along each dimension.
+    strides_: [usize; MAX_LENGTH],
 }
 
 impl Shape {
     pub fn new0() -> Self {
         Shape {
-            ndims: 0,
-            dims: [0, 0, 0, 0, 0, 0, 0, 0],
+            length_: 0,
+            dimensions_: [0; MAX_LENGTH],
+            strides_: [0; MAX_LENGTH],
         }
     }
 
-    pub fn num_dimensions(&self) -> usize {
-        self.ndims
+    pub fn length(&self) -> usize {
+        self.length_
     }
 
-    pub fn dimension(&self, index: usize) -> Result<usize> {
-        if index >= self.ndims {
-            return Err(Error::OutOfRange(format!(
-                "Index must be lower than {}, but got {}.",
-                self.ndims, index
-            )));
-        }
-        Ok(unsafe { self.dimension_unchecked(index) })
+    fn check_index(&self, index: usize) -> Result<()> {
+        (index < self.length_)
+            .then(|| ())
+            .ok_or(Error::OutOfRange(format!(
+                "Shape index out of range: index:{} >= length:{}",
+                index, self.length_
+            )))
     }
 
     pub unsafe fn dimension_unchecked(&self, index: usize) -> usize {
-        *self.dims.get_unchecked(index)
+        *self.dimensions_.get_unchecked(index)
+    }
+
+    pub fn dimension(&self, index: usize) -> Result<usize> {
+        self.check_index(index)?;
+        Ok(unsafe { self.dimension_unchecked(index) })
+    }
+
+    pub unsafe fn stride_unchecked(&self, index: usize) -> usize {
+        *self.strides_.get_unchecked(index)
+    }
+
+    pub fn stride(&self, index: usize) -> Result<usize> {
+        self.check_index(index)?;
+        Ok(unsafe { self.stride_unchecked(index) })
     }
 
     pub fn num_values(&self) -> usize {
-        self.dims[..self.ndims].iter().product()
+        self.dimensions_[..self.length_].iter().product()
     }
 }
 
@@ -48,7 +69,7 @@ impl fmt::Display for Shape {
         write!(
             f,
             "({})",
-            self.dims[..self.ndims]
+            self.dimensions_[..self.length_]
                 .iter()
                 .map(|x| x.to_string())
                 .collect::<Vec<_>>()
@@ -57,6 +78,7 @@ impl fmt::Display for Shape {
     }
 }
 
+/// Macro rules to generate a new Shape object.
 #[macro_export]
 macro_rules! make_shape {
     () => {
@@ -71,8 +93,9 @@ mod tests {
     #[test]
     fn test_new0() {
         let shape = Shape::new0();
-        assert_eq!(shape.num_dimensions(), 0);
+        assert_eq!(shape.length(), 0);
         assert!(shape.dimension(0).is_err());
+        assert!(shape.stride(0).is_err());
         assert_eq!(shape.num_values(), 1);
         assert_eq!(format!("{}", shape), "()");
         assert_eq!(shape, make_shape![]);

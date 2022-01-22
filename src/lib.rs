@@ -1,6 +1,6 @@
 mod error;
-mod graph;
-mod operation;
+pub mod graph;
+mod operator;
 mod result;
-mod shape;
+pub mod shape;
 mod value;

@@ -2,10 +2,10 @@ use std::rc::Rc;
 
 use crate::error::Error;
 use crate::result::Result;
-use crate::value::{make_scalar, Value};
+use crate::value::Value;
 
-/// Operation represents an individual computation process in the computation graph.
-pub(crate) trait Operation {
+/// Operator represents an individual computation process in the computation graph.
+pub(crate) trait Operator {
     fn name(&self) -> &str;
     fn input_size(&self) -> usize;
     fn output_size(&self) -> usize;
@@ -24,7 +24,7 @@ impl Constant {
     }
 }
 
-impl Operation for Constant {
+impl Operator for Constant {
     fn name(&self) -> &str {
         "Constant"
     }
@@ -47,7 +47,7 @@ macro_rules! define_binary_op {
                 Self {}
             }
         }
-        impl Operation for $name {
+        impl Operator for $name {
             fn name(&self) -> &str {
                 stringify!($name)
             }
@@ -93,13 +93,13 @@ macro_rules! define_elementwise_binary_op {
 }
 
 define_elementwise_binary_op!(Add, |(a, b)| a + b);
-define_elementwise_binary_op!(Subtract, |(a, b)| a - b);
-define_elementwise_binary_op!(Mltiply, |(a, b)| a * b);
-define_elementwise_binary_op!(Divide, |(a, b)| a / b);
+define_elementwise_binary_op!(Sub, |(a, b)| a - b);
+define_elementwise_binary_op!(Mul, |(a, b)| a * b);
+define_elementwise_binary_op!(Div, |(a, b)| a / b);
 
 #[cfg(test)]
 mod tests {
-    use crate::operation::*;
+    use crate::operator::*;
     use crate::value::make_scalar;
 
     #[test]
