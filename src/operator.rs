@@ -1,7 +1,5 @@
 use std::rc::Rc;
 
-use crate::error::Error;
-use crate::result::Result;
 use crate::value::Value;
 
 /// Operator represents an individual computation process in the computation graph.
@@ -9,7 +7,7 @@ pub(crate) trait Operator {
     fn name(&self) -> &str;
     fn input_size(&self) -> usize;
     fn output_size(&self) -> usize;
-    fn perform(&self, inputs: &Vec<&Value>) -> Result<Vec<Rc<Value>>>;
+    unsafe fn perform_unchecked(&self, inputs: &Vec<&Value>) -> Vec<Rc<Value>>;
 }
 
 pub(crate) struct Constant {
@@ -34,13 +32,13 @@ impl Operator for Constant {
     fn output_size(&self) -> usize {
         1
     }
-    fn perform(&self, _inputs: &Vec<&Value>) -> Result<Vec<Rc<Value>>> {
-        Ok(vec![self.value.clone()])
+    unsafe fn perform_unchecked(&self, _inputs: &Vec<&Value>) -> Vec<Rc<Value>> {
+        vec![self.value.clone()]
     }
 }
 
 macro_rules! define_binary_op {
-    ( $name:ident, $lhs:ident, $rhs:ident, $impl:expr) => {
+    ( $name:ident, $lhs:ident, $rhs:ident, $impl:expr ) => {
         pub(crate) struct $name;
         impl $name {
             pub(crate) fn new() -> Self {
@@ -57,17 +55,10 @@ macro_rules! define_binary_op {
             fn output_size(&self) -> usize {
                 1
             }
-            fn perform(&self, inputs: &Vec<&Value>) -> Result<Vec<Rc<Value>>> {
-                let $lhs = inputs[0];
-                let $rhs = inputs[1];
-                if $lhs.shape() != $rhs.shape() {
-                    return Err(Error::InvalidShape(format!(
-                        "Binary operation of shapes {} and {} is not supported.",
-                        $lhs.shape(),
-                        $rhs.shape()
-                    )));
-                }
-                Ok(vec![Rc::new($impl)])
+            unsafe fn perform_unchecked(&self, inputs: &Vec<&Value>) -> Vec<Rc<Value>> {
+                let $lhs = inputs.get_unchecked(0);
+                let $rhs = inputs.get_unchecked(1);
+                vec![Rc::new($impl)]
             }
         }
     };
@@ -110,7 +101,7 @@ mod tests {
         assert_eq!(op.output_size(), 1);
         let input_refs = vec![];
         let expected = vec![make_scalar(123.)];
-        let observed = op.perform(&input_refs).unwrap();
+        let observed = unsafe { op.perform_unchecked(&input_refs) };
         assert_eq!(observed.len(), expected.len());
         for i in 0..expected.len() {
             assert_eq!(observed[i].shape(), expected[i].shape());
@@ -127,7 +118,7 @@ mod tests {
         let inputs = vec![make_scalar(1.), make_scalar(2.)];
         let input_refs = inputs.iter().map(|x| x).collect::<Vec<_>>();
         let expected = vec![make_scalar(3.)];
-        let observed = op.perform(&input_refs).unwrap();
+        let observed = unsafe { op.perform_unchecked(&input_refs) };
         assert_eq!(observed.len(), expected.len());
         for i in 0..expected.len() {
             assert_eq!(observed[i].shape(), expected[i].shape());

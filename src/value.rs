@@ -12,10 +12,10 @@ pub(crate) struct Value {
 
 impl Value {
     pub(crate) fn new(shape: Shape, values: Vec<f32>) -> Result<Self> {
-        if values.len() != shape.num_values() {
+        if values.len() != shape.get_num_elements() {
             return Err(Error::InvalidLength(format!(
                 "shape required {} values, but got {} values.",
-                shape.num_values(),
+                shape.get_num_elements(),
                 values.len(),
             )));
         }

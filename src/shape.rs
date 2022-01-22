@@ -20,6 +20,14 @@ pub struct Shape {
 }
 
 impl Shape {
+    /// Creates a new 0-dimensional shape.
+    ///
+    /// 0-dimensional shape has no dimension/stride values, and has only 1 element.
+    /// This shape usually represents scalar values.
+    ///
+    /// # Returns
+    ///
+    /// A new `Shape` object.
     pub fn new0() -> Self {
         Shape {
             length_: 0,
@@ -28,10 +36,25 @@ impl Shape {
         }
     }
 
+    /// Returns the length (number of dimensions) of this shape.
+    ///
+    /// # Returns
+    ///
+    /// The length of the shape.
     pub fn length(&self) -> usize {
         self.length_
     }
 
+    /// Inner function to check if the given index is valid or not in this shape.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - Index of the dimension.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - `index` is valid in this shape.
+    /// * `Err(Error)` = `index` is invalid.
     fn check_index(&self, index: usize) -> Result<()> {
         (index < self.length_)
             .then(|| ())
@@ -41,31 +64,88 @@ impl Shape {
             )))
     }
 
-    pub unsafe fn dimension_unchecked(&self, index: usize) -> usize {
+    /// Obtains the size of the specified dimension in this shape.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - Index of the dimension.
+    ///
+    /// # Returns
+    ///
+    /// The size of the `index`-th dimension.
+    ///
+    /// # Requirements
+    ///
+    /// `index` must be in `0..self.length()`.
+    pub(crate) unsafe fn dimension_unchecked(&self, index: usize) -> usize {
         *self.dimensions_.get_unchecked(index)
     }
 
+    /// Obtains the size of the specified dimension in this shape.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - Index of the dimension.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(usize)` - The size of the `index`-th dimension.
+    /// * `Err(Error)` - `index` is out-of-range.
     pub fn dimension(&self, index: usize) -> Result<usize> {
         self.check_index(index)?;
         Ok(unsafe { self.dimension_unchecked(index) })
     }
 
-    pub unsafe fn stride_unchecked(&self, index: usize) -> usize {
+    /// Obtains the stride of the specified dimension in this shape.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - Index of the dimension.
+    ///
+    /// # Returns
+    ///
+    /// The stride of the `index`-th dimension.
+    ///
+    /// # Requirements
+    ///
+    /// `index` must be in `0..self.length()`.
+    pub(crate) unsafe fn stride_unchecked(&self, index: usize) -> usize {
         *self.strides_.get_unchecked(index)
     }
 
+    /// Obtains the size of the specified dimension in this shape.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - Index of the dimension.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(usize)` - The stride of the `index`-th dimension.
+    /// * `Err(Error)` - `index` is out-of-range.
     pub fn stride(&self, index: usize) -> Result<usize> {
         self.check_index(index)?;
         Ok(unsafe { self.stride_unchecked(index) })
     }
 
-    pub fn num_values(&self) -> usize {
+    /// Calculates the number of elements represented by this shape.
+    ///
+    /// The number of elements is defined as usually the product of all valid dimension sizes.
+    /// This value could become 0 if some dimension has lengths of 0.
+    ///
+    /// # Returns
+    ///
+    /// The number of elements represented by the shape.
+    pub fn get_num_elements(&self) -> usize {
         self.dimensions_[..self.length_].iter().product()
     }
 }
 
 impl fmt::Display for Shape {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Dimensions == []        => "()"
+        // Dimensions == [42]      => "(42)"
+        // Dimensions == [1, 2, 3] => "(1, 2, 3)"
         write!(
             f,
             "({})",
@@ -96,7 +176,7 @@ mod tests {
         assert_eq!(shape.length(), 0);
         assert!(shape.dimension(0).is_err());
         assert!(shape.stride(0).is_err());
-        assert_eq!(shape.num_values(), 1);
+        assert_eq!(shape.get_num_elements(), 1);
         assert_eq!(format!("{}", shape), "()");
         assert_eq!(shape, make_shape![]);
     }

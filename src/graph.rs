@@ -254,7 +254,7 @@ impl Graph {
 
                         // Perform the operator.
                         self.steps.get_unchecked_mut(step_id).outputs =
-                            Some(node.operator.perform(&inputs).unwrap());
+                            Some(node.operator.perform_unchecked(&inputs));
                     }
                 }
             }
