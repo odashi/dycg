@@ -1,21 +1,21 @@
 use std::rc::Rc;
 
-use crate::value::Value;
+use crate::array::Array;
 
 /// Operator represents an individual computation process in the computation graph.
 pub(crate) trait Operator {
     fn name(&self) -> &str;
     fn input_size(&self) -> usize;
     fn output_size(&self) -> usize;
-    unsafe fn perform_unchecked(&self, inputs: &Vec<&Value>) -> Vec<Rc<Value>>;
+    unsafe fn perform_unchecked(&self, inputs: &Vec<&Array>) -> Vec<Rc<Array>>;
 }
 
 pub(crate) struct Constant {
-    value: Rc<Value>,
+    value: Rc<Array>,
 }
 
 impl Constant {
-    pub(crate) fn new(value: Value) -> Self {
+    pub(crate) fn new(value: Array) -> Self {
         Self {
             value: Rc::new(value),
         }
@@ -32,7 +32,7 @@ impl Operator for Constant {
     fn output_size(&self) -> usize {
         1
     }
-    unsafe fn perform_unchecked(&self, _inputs: &Vec<&Value>) -> Vec<Rc<Value>> {
+    unsafe fn perform_unchecked(&self, _inputs: &Vec<&Array>) -> Vec<Rc<Array>> {
         vec![self.value.clone()]
     }
 }
@@ -55,7 +55,7 @@ macro_rules! define_binary_op {
             fn output_size(&self) -> usize {
                 1
             }
-            unsafe fn perform_unchecked(&self, inputs: &Vec<&Value>) -> Vec<Rc<Value>> {
+            unsafe fn perform_unchecked(&self, inputs: &Vec<&Array>) -> Vec<Rc<Array>> {
                 let $lhs = inputs.get_unchecked(0);
                 let $rhs = inputs.get_unchecked(1);
                 vec![Rc::new($impl)]
@@ -70,7 +70,7 @@ macro_rules! define_elementwise_binary_op {
             $name,
             lhs,
             rhs,
-            Value::new(
+            Array::with_default_backend(
                 *lhs.shape(),
                 lhs.to_vec()
                     .iter()
@@ -90,8 +90,8 @@ define_elementwise_binary_op!(Div, |(a, b)| a / b);
 
 #[cfg(test)]
 mod tests {
+    use crate::array::make_scalar;
     use crate::operator::*;
-    use crate::value::make_scalar;
 
     #[test]
     fn test_constant_op() {

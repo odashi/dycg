@@ -1,7 +1,7 @@
 use std::fmt;
 
 /// Error type for this crate.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Error {
     OutOfRange(String),
     InvalidNode(String),

@@ -14,9 +14,6 @@ pub struct Shape {
 
     /// Number of values for each dimension.
     dimensions_: [usize; MAX_LENGTH],
-
-    /// Interval (number of values) to the next value along each dimension.
-    strides_: [usize; MAX_LENGTH],
 }
 
 impl Shape {
@@ -32,7 +29,6 @@ impl Shape {
         Shape {
             length_: 0,
             dimensions_: [0; MAX_LENGTH],
-            strides_: [0; MAX_LENGTH],
         }
     }
 
@@ -45,7 +41,7 @@ impl Shape {
         self.length_
     }
 
-    /// Inner function to check if the given index is valid or not in this shape.
+    /// Checks if the given index is valid or not in this shape.
     ///
     /// # Arguments
     ///
@@ -55,12 +51,27 @@ impl Shape {
     ///
     /// * `Ok(())` - `index` is valid in this shape.
     /// * `Err(Error)` = `index` is invalid.
-    fn check_index(&self, index: usize) -> Result<()> {
+    pub fn check_index(&self, index: usize) -> Result<()> {
         (index < self.length_)
             .then(|| ())
             .ok_or(Error::OutOfRange(format!(
                 "Shape index out of range: index:{} >= length:{}",
                 index, self.length_
+            )))
+    }
+
+    /// Checks if the shape represents a scalar or not.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Shape represents a scalar.
+    /// * `Err(Error)` - Shape does not represent a scalar.
+    pub fn check_is_scalar(&self) -> Result<()> {
+        (self.length_ == 0)
+            .then(|| ())
+            .ok_or(Error::InvalidShape(format!(
+                "Shape is not representing a scalar. length: {}",
+                self.length_
             )))
     }
 
@@ -94,38 +105,6 @@ impl Shape {
     pub fn dimension(&self, index: usize) -> Result<usize> {
         self.check_index(index)?;
         Ok(unsafe { self.dimension_unchecked(index) })
-    }
-
-    /// Obtains the stride of the specified dimension in this shape.
-    ///
-    /// # Arguments
-    ///
-    /// * `index` - Index of the dimension.
-    ///
-    /// # Returns
-    ///
-    /// The stride of the `index`-th dimension.
-    ///
-    /// # Requirements
-    ///
-    /// `index` must be in `0..self.length()`.
-    pub(crate) unsafe fn stride_unchecked(&self, index: usize) -> usize {
-        *self.strides_.get_unchecked(index)
-    }
-
-    /// Obtains the size of the specified dimension in this shape.
-    ///
-    /// # Arguments
-    ///
-    /// * `index` - Index of the dimension.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(usize)` - The stride of the `index`-th dimension.
-    /// * `Err(Error)` - `index` is out-of-range.
-    pub fn stride(&self, index: usize) -> Result<usize> {
-        self.check_index(index)?;
-        Ok(unsafe { self.stride_unchecked(index) })
     }
 
     /// Calculates the number of elements represented by this shape.
@@ -174,8 +153,9 @@ mod tests {
     fn test_new0() {
         let shape = Shape::new0();
         assert_eq!(shape.length(), 0);
+        assert!(shape.check_index(0).is_err());
+        assert!(shape.check_is_scalar().is_ok());
         assert!(shape.dimension(0).is_err());
-        assert!(shape.stride(0).is_err());
         assert_eq!(shape.get_num_elements(), 1);
         assert_eq!(format!("{}", shape), "()");
         assert_eq!(shape, make_shape![]);
