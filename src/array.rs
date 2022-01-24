@@ -112,7 +112,7 @@ impl Array {
     /// * `Err(Error)` - Array is not a scalar.
     pub(crate) fn into_scalar(&self) -> Result<f32> {
         self.shape.check_is_scalar()?;
-        let mut value: f32;
+        let mut value = 0.;
         unsafe {
             self.buffer
                 .hardware()
@@ -122,9 +122,137 @@ impl Array {
                     self.buffer.as_handle(),
                     (&mut value as *mut f32) as *mut u8,
                     size_of::<f32>(),
-                )
+                );
         }
         Ok(value)
+    }
+
+    /// Performs elementwise add operation and returns a new `Array` of resulting values.
+    ///
+    /// This function does not perform broadcasting.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - `Array` of right-hand side argument.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Array)` - A new `Array` holding the results.
+    /// * `Err(Error)` - The operation can not be evaluated for given arguments.
+    pub(crate) fn elementwise_add_f32(&self, other: &Array) -> Result<Array> {
+        self.buffer.check_colocated(&other.buffer)?;
+        let output_shape = self.shape.elementwise(&other.shape)?;
+        unsafe {
+            let mut output = Self::raw_colocated(self, output_shape);
+            output
+                .buffer
+                .hardware()
+                .lock()
+                .unwrap()
+                .elementwise_add_f32(
+                    self.buffer.as_handle(),
+                    other.buffer.as_handle(),
+                    output.buffer.as_handle_mut(),
+                    output_shape.get_num_elements(),
+                );
+            Ok(output)
+        }
+    }
+
+    /// Performs elementwise subtract operation and returns a new `Array` of resulting values.
+    ///
+    /// This function does not perform broadcasting.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - `Array` of right-hand side argument.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Array)` - A new `Array` holding the results.
+    /// * `Err(Error)` - The operation can not be evaluated for given arguments.
+    pub(crate) fn elementwise_sub_f32(&self, other: &Array) -> Result<Array> {
+        self.buffer.check_colocated(&other.buffer)?;
+        let output_shape = self.shape.elementwise(&other.shape)?;
+        unsafe {
+            let mut output = Self::raw_colocated(self, output_shape);
+            output
+                .buffer
+                .hardware()
+                .lock()
+                .unwrap()
+                .elementwise_sub_f32(
+                    self.buffer.as_handle(),
+                    other.buffer.as_handle(),
+                    output.buffer.as_handle_mut(),
+                    output_shape.get_num_elements(),
+                );
+            Ok(output)
+        }
+    }
+
+    /// Performs elementwise multiply operation and returns a new `Array` of resulting values.
+    ///
+    /// This function does not perform broadcasting.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - `Array` of right-hand side argument.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Array)` - A new `Array` holding the results.
+    /// * `Err(Error)` - The operation can not be evaluated for given arguments.
+    pub(crate) fn elementwise_mul_f32(&self, other: &Array) -> Result<Array> {
+        self.buffer.check_colocated(&other.buffer)?;
+        let output_shape = self.shape.elementwise(&other.shape)?;
+        unsafe {
+            let mut output = Self::raw_colocated(self, output_shape);
+            output
+                .buffer
+                .hardware()
+                .lock()
+                .unwrap()
+                .elementwise_mul_f32(
+                    self.buffer.as_handle(),
+                    other.buffer.as_handle(),
+                    output.buffer.as_handle_mut(),
+                    output_shape.get_num_elements(),
+                );
+            Ok(output)
+        }
+    }
+
+    /// Performs elementwise divide operation and returns a new `Array` of resulting values.
+    ///
+    /// This function does not perform broadcasting.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - `Array` of right-hand side argument.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Array)` - A new `Array` holding the results.
+    /// * `Err(Error)` - The operation can not be evaluated for given arguments.
+    pub(crate) fn elementwise_div_f32(&self, other: &Array) -> Result<Array> {
+        self.buffer.check_colocated(&other.buffer)?;
+        let output_shape = self.shape.elementwise(&other.shape)?;
+        unsafe {
+            let mut output = Self::raw_colocated(self, output_shape);
+            output
+                .buffer
+                .hardware()
+                .lock()
+                .unwrap()
+                .elementwise_div_f32(
+                    self.buffer.as_handle(),
+                    other.buffer.as_handle(),
+                    output.buffer.as_handle_mut(),
+                    output_shape.get_num_elements(),
+                );
+            Ok(output)
+        }
     }
 }
 
@@ -132,7 +260,7 @@ impl Array {
 pub(crate) fn make_cpu_scalar(value: f32) -> Array {
     unsafe {
         let mut array = Array::raw(get_default_hardware(), make_shape![]);
-        array.set_scalar(value);
+        array.set_scalar(value).unwrap();
         array
     }
 }

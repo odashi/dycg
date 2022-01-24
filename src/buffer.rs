@@ -1,4 +1,7 @@
+use crate::error::Error;
 use crate::hardware::Hardware;
+use crate::result::Result;
+use std::ptr;
 use std::sync::Mutex;
 
 /// RAII object for hardware-specific memory.
@@ -84,7 +87,7 @@ impl<'hw> Buffer<'hw> {
 
     /// Returns the const handle owned by this buffer.
     ///
-    /// # Returns:
+    /// # Returns
     ///
     /// Owned handle as a const pointer.
     pub(crate) unsafe fn as_handle(&self) -> *const u8 {
@@ -93,11 +96,46 @@ impl<'hw> Buffer<'hw> {
 
     /// Returns the mutable handle owned by this buffer.
     ///
-    /// # Returns:
+    /// # Returns
     ///
     /// Owned handle as a mutable pointer.
     pub(crate) unsafe fn as_handle_mut(&mut self) -> *mut u8 {
         self.handle
+    }
+
+    /// Checks if the both buffers are colocated on the same hardware.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - A `Buffer` object to check colocation.
+    ///
+    /// # Returns
+    ///
+    /// * `true` - The both buffers are colocated on the same hardware.
+    /// * `false` - Otherwise.
+    pub(crate) fn is_colocated(&self, other: &Buffer) -> bool {
+        ptr::eq(self.hardware, other.hardware)
+    }
+
+    /// Checks if the both buffers are colocated on the same hardware.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - A `Buffer` object to check colocation.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - The both buffers are colocated on the same hardware.
+    /// * `Err(Error)` - Otherwise.
+    pub(crate) fn check_colocated(&self, other: &Buffer) -> Result<()> {
+        self.is_colocated(other)
+            .then(|| ())
+            .ok_or(Error::InvalidHardware(format!(
+                "Buffers are not colocated on the same hardware. self: {}, other: {}",
+                // These mutex locks should be performed for different hardwares.
+                self.hardware.lock().unwrap().name(),
+                other.hardware.lock().unwrap().name()
+            )))
     }
 }
 

@@ -13,7 +13,14 @@ const DEFAULT_MEMORY_ALIGNMENT: usize = 8;
 /// As the real hardware lives longer than the programs, structs implementing this trait may be
 /// installed as a static object.
 /// They require implicit/explicit initialization procedure during the program startups.
-pub(crate) unsafe trait Hardware {
+pub(crate) unsafe trait Hardware: Send {
+    /// Returns the name of this hardware.
+    ///
+    /// # Returns
+    ///
+    /// The name of this hardware.
+    fn name(&self) -> &str;
+
     /// Allocates a new memory with at least the requested size and returns its handle.
     ///
     /// # Arguments
@@ -99,7 +106,7 @@ pub(crate) unsafe trait Hardware {
     /// * `lhs` - Hardware memory for left-hand side argument.
     /// * `rhs` - Hardware memory for right-hand side argument.
     /// * `dest` - Hardware memory for destination.
-    /// * `num_elements` - Number of elements to be calculated.
+    /// * `num_elements` - Number of elements on each memory.
     ///
     /// # Requirements
     ///
@@ -120,7 +127,7 @@ pub(crate) unsafe trait Hardware {
     /// * `lhs` - Hardware memory for left-hand side argument.
     /// * `rhs` - Hardware memory for right-hand side argument.
     /// * `dest` - Hardware memory for destination.
-    /// * `num_elements` - Number of elements to be calculated.
+    /// * `num_elements` - Number of elements on each memory.
     ///
     /// # Requirements
     ///
@@ -141,7 +148,7 @@ pub(crate) unsafe trait Hardware {
     /// * `lhs` - Hardware memory for left-hand side argument.
     /// * `rhs` - Hardware memory for right-hand side argument.
     /// * `dest` - Hardware memory for destination.
-    /// * `num_elements` - Number of elements to be calculated.
+    /// * `num_elements` - Number of elements on each memory.
     ///
     /// # Requirements
     ///
@@ -162,7 +169,7 @@ pub(crate) unsafe trait Hardware {
     /// * `lhs` - Hardware memory for left-hand side argument.
     /// * `rhs` - Hardware memory for right-hand side argument.
     /// * `dest` - Hardware memory for destination.
-    /// * `num_elements` - Number of elements to be calculated.
+    /// * `num_elements` - Number of elements on each memory.
     ///
     /// # Requirements
     ///
@@ -181,20 +188,33 @@ pub(crate) unsafe trait Hardware {
 ///
 /// Memories on this hardware are identical with the usual host memory and are allocated through
 /// `GlobalAlloc`.
-pub struct CpuHardware;
+pub struct CpuHardware {
+    /// Name of this hardware.
+    name: String,
+}
 
 impl CpuHardware {
     /// Creates a new `CpuHardware` object.
     ///
+    /// # Arguments
+    ///
+    /// * `name` - Name of this hardware.
+    ///
     /// # Returns
     ///
     /// A new `CpuHardware` object.
-    fn new() -> Self {
-        Self {}
+    fn new(name: &str) -> Self {
+        Self {
+            name: String::from(name),
+        }
     }
 }
 
 unsafe impl Hardware for CpuHardware {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
     unsafe fn allocate_memory(&mut self, size: usize) -> *mut u8 {
         let layout = alloc::Layout::from_size_align_unchecked(size, DEFAULT_MEMORY_ALIGNMENT);
         let handle = alloc::alloc(layout);
@@ -204,8 +224,7 @@ unsafe impl Hardware for CpuHardware {
         }
         println!(
             "Allocated a buffer: handle={:16x}, size={}",
-            unsafe { handle as usize },
-            size
+            handle as usize, size
         );
         handle
     }
@@ -213,8 +232,7 @@ unsafe impl Hardware for CpuHardware {
     unsafe fn deallocate_memory(&mut self, handle: *mut u8, size: usize) {
         println!(
             "Released a buffer: handle={:16x}, size={}",
-            unsafe { handle as usize },
-            size
+            handle as usize, size
         );
         alloc::dealloc(
             handle,
@@ -245,8 +263,8 @@ unsafe impl Hardware for CpuHardware {
         num_elements: usize,
     ) {
         let lhs = lhs as *const f32;
-        let rhs = lhs as *const f32;
-        let dest = lhs as *mut f32;
+        let rhs = rhs as *const f32;
+        let dest = dest as *mut f32;
         for i in 0..num_elements {
             *dest.add(i) = *lhs.add(i) + *rhs.add(i);
         }
@@ -260,8 +278,8 @@ unsafe impl Hardware for CpuHardware {
         num_elements: usize,
     ) {
         let lhs = lhs as *const f32;
-        let rhs = lhs as *const f32;
-        let dest = lhs as *mut f32;
+        let rhs = rhs as *const f32;
+        let dest = dest as *mut f32;
         for i in 0..num_elements {
             *dest.add(i) = *lhs.add(i) - *rhs.add(i);
         }
@@ -274,8 +292,8 @@ unsafe impl Hardware for CpuHardware {
         num_elements: usize,
     ) {
         let lhs = lhs as *const f32;
-        let rhs = lhs as *const f32;
-        let dest = lhs as *mut f32;
+        let rhs = rhs as *const f32;
+        let dest = dest as *mut f32;
         for i in 0..num_elements {
             *dest.add(i) = *lhs.add(i) * *rhs.add(i);
         }
@@ -288,8 +306,8 @@ unsafe impl Hardware for CpuHardware {
         num_elements: usize,
     ) {
         let lhs = lhs as *const f32;
-        let rhs = lhs as *const f32;
-        let dest = lhs as *mut f32;
+        let rhs = rhs as *const f32;
+        let dest = dest as *mut f32;
         for i in 0..num_elements {
             *dest.add(i) = *lhs.add(i) / *rhs.add(i);
         }
@@ -301,5 +319,5 @@ unsafe impl Hardware for CpuHardware {
 /// Any arrays without explicit specification of hardware falls back to use this hardware.
 pub(crate) fn get_default_hardware() -> &'static Mutex<Box<dyn Hardware>> {
     static SINGLETON: OnceCell<Mutex<Box<dyn Hardware>>> = OnceCell::new();
-    SINGLETON.get_or_init(|| Mutex::new(Box::new(CpuHardware::new())))
+    SINGLETON.get_or_init(|| Mutex::new(Box::new(CpuHardware::new("default"))))
 }

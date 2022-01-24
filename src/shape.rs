@@ -132,6 +132,32 @@ impl Shape {
     pub fn get_memory_size<T: Sized>(&self) -> usize {
         self.get_num_elements() * size_of::<T>()
     }
+
+    /// Obtains the resulting shape of elementwise binary operation.
+    ///
+    /// This function returns a shape of the result of `self (op) other` operation.
+    /// Specifically, this function checks the equality of both shapes, then results a copy of
+    /// `self`.
+    /// This function does not evaluate broadcasting.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Right-hand side argument.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Self)` - The shape of the reult of elementwise binary operation.
+    /// * `Err(Error)` - Operation failed.
+    pub fn elementwise(&self, other: &Self) -> Result<Self> {
+        if self == other {
+            Ok(*self)
+        } else {
+            Err(Error::InvalidShape(format!(
+                "Elementwise operation can not be evaluated for hapes {} and {}.",
+                self, other
+            )))
+        }
+    }
 }
 
 impl fmt::Display for Shape {

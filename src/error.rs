@@ -4,6 +4,7 @@ use std::fmt;
 #[derive(Clone, Debug, PartialEq)]
 pub enum Error {
     OutOfRange(String),
+    InvalidHardware(String),
     InvalidNode(String),
     InvalidLength(String),
     InvalidShape(String),

@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use scoped_tls_hkt::scoped_thread_local;
 
-use crate::array::{make_scalar, Value};
+use crate::array::{make_cpu_scalar, Array};
 use crate::error::Error;
 use crate::operator::{self, Operator};
 use crate::result::Result;
@@ -20,7 +20,7 @@ pub(crate) struct Step {
     inputs: Vec<Node>,
 
     /// Output values.
-    outputs: Option<Vec<Rc<Value>>>,
+    outputs: Option<Vec<Rc<Array>>>,
 }
 
 /// Node in an computation graph.
@@ -171,7 +171,7 @@ impl Graph {
     ///
     /// * The specified node (step/output IDs) is valid in the graph.
     /// * The associated step is already calculated.
-    unsafe fn get_value_unchecked(&self, node: Node) -> &Rc<Value> {
+    unsafe fn get_value_unchecked(&self, node: Node) -> &Rc<Array> {
         self.steps
             .get_unchecked(node.step_id)
             .outputs
@@ -194,7 +194,7 @@ impl Graph {
     /// # Returns
     ///
     /// * Calculated/cached value associated to `target`.
-    pub(crate) fn calculate(&mut self, target: Node) -> Result<&Rc<Value>> {
+    pub(crate) fn calculate(&mut self, target: Node) -> Result<&Rc<Array>> {
         self.check_node(target)?;
 
         // Actions for the push-down automaton representing the following procedure:
@@ -250,11 +250,11 @@ impl Graph {
                                     .get_unchecked(node.output_id)
                                     .as_ref()
                             })
-                            .collect::<Vec<&Value>>();
+                            .collect::<Vec<&Array>>();
 
                         // Perform the operator.
                         self.steps.get_unchecked_mut(step_id).outputs =
-                            Some(node.operator.perform_unchecked(&inputs));
+                            Some(node.operator.perform(&inputs).unwrap());
                     }
                 }
             }
@@ -306,9 +306,12 @@ pub(crate) fn with_current_graph<T>(callback: impl FnOnce(&mut Graph) -> T) -> T
 impl From<f32> for Node {
     fn from(src: f32) -> Self {
         with_current_graph(|g| unsafe {
-            *g.add_step(Box::new(operator::Constant::new(make_scalar(src))), vec![])
-                .unwrap()
-                .get_unchecked(0)
+            *g.add_step(
+                Box::new(operator::Constant::new(make_cpu_scalar(src))),
+                vec![],
+            )
+            .unwrap()
+            .get_unchecked(0)
         })
     }
 }
@@ -316,7 +319,7 @@ impl From<f32> for Node {
 /// Reverse conversion from `Node` to a floating number.
 impl From<Node> for f32 {
     fn from(src: Node) -> Self {
-        with_current_graph(|g| g.calculate(src).unwrap().to_vec()[0])
+        with_current_graph(|g| g.calculate(src).unwrap().into_scalar().unwrap())
     }
 }
 
@@ -395,7 +398,7 @@ mod tests {
                 assert_eq!(g.steps.len(), 3);
                 let retval = g.calculate(ret).unwrap();
                 assert_eq!(*retval.shape(), make_shape![]);
-                assert_eq!(retval.to_vec(), vec![3.]);
+                assert_eq!(retval.into_scalar(), Ok(3.));
             });
         });
     }
