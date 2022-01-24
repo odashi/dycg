@@ -5,9 +5,11 @@ use std::sync::Mutex;
 ///
 /// This struct wraps around the raw handle returned by `Hardware`, and owns it during its lifetime.
 /// At `drop()` the owned handle is released using associated `Hardware`.
-pub(crate) struct Buffer<'a> {
+///
+/// This object can only be alive during the lifetime of the specified hardware.
+pub(crate) struct Buffer<'hw> {
     /// Reference to the hardware that `pointer` manages.
-    hardware: &'a Mutex<Box<dyn Hardware>>,
+    hardware: &'hw Mutex<Box<dyn Hardware>>,
 
     /// Size in bytes of the storage.
     size: usize,
@@ -16,8 +18,8 @@ pub(crate) struct Buffer<'a> {
     handle: *mut u8,
 }
 
-impl<'a> Buffer<'a> {
-    /// Creates a new `Buffer` object.
+impl<'hw> Buffer<'hw> {
+    /// Creates a new `Buffer` object without initialization.
     ///
     /// # Arguments
     ///
@@ -26,16 +28,40 @@ impl<'a> Buffer<'a> {
     ///
     /// # Returns
     ///
-    /// A new `Buffer` object owning allocated memory.
-    pub(crate) fn new(hardware: &'a Mutex<Box<dyn Hardware>>, size: usize) -> Self {
+    /// A new `Buffer` object.
+    ///
+    /// # Safety
+    ///
+    /// This function does not initialize the data on the allocated memory, and users are
+    /// responsible to initialize the memory immediately by themselves.
+    /// Using this object without explicit initialization causes undefined behavior.
+    pub(crate) unsafe fn raw(hardware: &'hw Mutex<Box<dyn Hardware>>, size: usize) -> Self {
+        // Panics immediately when mutex poisoning happened.
         Self {
             hardware,
             size,
-            handle: unsafe {
-                // Panics immediately when mutex poisoning happened.
-                hardware.lock().unwrap().allocate_memory(size)
-            },
+            handle: hardware.lock().unwrap().allocate_memory(size),
         }
+    }
+
+    /// Creates a new `Buffer` object on the same hardware of `other` without initialization.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - A `Buffer` object on the desired hardware.
+    /// * `size` - Size in bytes of the allocated memory.
+    ///
+    /// # Returns
+    ///
+    /// A new `Buffer` object.
+    ///
+    /// # Safety
+    ///
+    /// This function does not initialize the data on the allocated memory, and users are
+    /// responsible to initialize the memory immediately by themselves.
+    /// Using this object without explicit initialization causes undefined behavior.
+    pub(crate) unsafe fn raw_colocated(other: &Buffer<'hw>, size: usize) -> Self {
+        Self::raw(other.hardware, size)
     }
 
     /// Returns the hardware to manage owned memory.
@@ -43,7 +69,7 @@ impl<'a> Buffer<'a> {
     /// # Returns
     ///
     /// A Reference to the wrapped `Hardware` object.
-    pub(crate) fn hardware(&self) -> &'a Mutex<Box<dyn Hardware>> {
+    pub(crate) fn hardware(&self) -> &'hw Mutex<Box<dyn Hardware>> {
         self.hardware
     }
 
@@ -75,7 +101,7 @@ impl<'a> Buffer<'a> {
     }
 }
 
-impl<'a> Drop for Buffer<'a> {
+impl<'hw> Drop for Buffer<'hw> {
     fn drop(&mut self) {
         unsafe {
             // Panics immediately when mutex poisoning happened.

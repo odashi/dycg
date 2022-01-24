@@ -70,6 +70,10 @@ macro_rules! define_elementwise_binary_op {
             $name,
             lhs,
             rhs,
+            {
+                let mut array = Array::raw(*lhs.shape());
+                a
+            }
             Array::with_default_hardware(
                 *lhs.shape(),
                 lhs.to_vec()

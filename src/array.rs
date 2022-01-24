@@ -1,9 +1,10 @@
 use crate::buffer::Buffer;
-use crate::hardware::get_default_hardware;
+use crate::hardware::{get_default_hardware, Hardware};
 use crate::make_shape;
 use crate::result::Result;
 use crate::shape::Shape;
 use std::mem::size_of;
+use std::sync::Mutex;
 
 /// A multidimensional array with specific computing backend.
 ///
@@ -18,22 +19,47 @@ pub struct Array {
 }
 
 impl Array {
-    /// Creates a new Array on the default hardware.
+    /// Creates a new `Array` on a specific hardware.
     ///
     /// # Arguments
     ///
-    /// * `shape` - Shape of the array.
+    /// * `hardware` - Hardware that handles the memory.
+    /// * `shape` - `Shape` of the new array.
     ///
     /// # Returns
     ///
     /// A new `Array` object.
-    pub(crate) fn with_default_hardware(shape: Shape) -> Self {
+    ///
+    /// # Safety
+    ///
+    /// This function does not initialize the inner memory.
+    /// Users are responsible to initialize the memory immediately by themselves.
+    pub(crate) unsafe fn raw(hardware: &'static Mutex<Box<dyn Hardware>>, shape: Shape) -> Self {
         Self {
             shape,
-            buffer: Buffer::new(
-                get_default_hardware(),
-                shape.get_num_elements() * size_of::<f32>(),
-            ),
+            buffer: Buffer::raw(hardware, shape.get_memory_size::<f32>()),
+        }
+    }
+
+    /// Creates a new `Array` on the same hardware with `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - An `Array` object on the desired hardware.
+    /// * `shape` - `Shape` of the new array.
+    ///
+    /// # Returns
+    ///
+    /// A new `Array` object.
+    ///
+    /// # Safety
+    ///
+    /// This function does not initialize the inner memory.
+    /// Users are responsible to initialize the memory immediately by themselves.
+    pub(crate) unsafe fn raw_colocated(other: &Array, shape: Shape) -> Self {
+        Self {
+            shape,
+            buffer: Buffer::raw_colocated(&other.buffer, shape.get_memory_size::<f32>()),
         }
     }
 
@@ -104,9 +130,11 @@ impl Array {
 
 /// For early-stage debugging, will be removed.
 pub(crate) fn make_cpu_scalar(value: f32) -> Array {
-    let array = Array::with_default_hardware(make_shape![]);
-    array.set_scalar(value);
-    array
+    unsafe {
+        let mut array = Array::raw(get_default_hardware(), make_shape![]);
+        array.set_scalar(value);
+        array
+    }
 }
 
 #[cfg(test)]

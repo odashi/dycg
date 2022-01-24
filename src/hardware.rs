@@ -30,12 +30,14 @@ pub(crate) unsafe trait Hardware {
     ///
     /// This function may panic when memory allocation failed for some reason and the implementation
     /// judged that the failure can not be recovered.
+    ///
+    /// # Safety
+    ///
+    /// The memory returned by this function may not be initialized. Users are responsible to
+    /// initialize the memory immediately by themselves.
     unsafe fn allocate_memory(&mut self, size: usize) -> *mut u8;
 
     /// Releases given buffer.
-    ///
-    /// After calling this function, `memory` must not be used because it no longer points to any
-    /// valid data.
     ///
     /// # Arguments
     ///
@@ -43,6 +45,11 @@ pub(crate) unsafe trait Hardware {
     ///   the same hardware.
     /// * `size` - Size in bytes of the allocated memory. This value must be equal to that specified
     ///   at corresponding `get_memory` call.
+    ///
+    /// # Safety
+    ///
+    /// After calling this function, `memory` must not be used because it no longer points to any
+    /// valid data.
     unsafe fn deallocate_memory(&mut self, handle: *mut u8, size: usize);
 
     /// Copies data from a host memory to a hardware memory.
@@ -71,6 +78,20 @@ pub(crate) unsafe trait Hardware {
     /// Both `src` and `dest` own enough amount of memory to store data with `size` bytes long.
     unsafe fn copy_hardware_to_host(&mut self, src: *const u8, dest: *mut u8, size: usize);
 
+    /// Fills the memory with specified data.
+    ///
+    /// # Arguments
+    ///
+    /// * `src` - Hardware memory to be filled.
+    /// * `value` - Value to fill.
+    /// * `num_elements` - Number of elements to be filled.
+    ///
+    /// # Requirements
+    ///
+    /// `src` own enough amount of memory to store data with `num_elements` elements of the value
+    /// type.
+    unsafe fn fill_f32(&mut self, src: *mut u8, value: f32, num_elements: usize);
+
     /// Performs elementwise add operation.
     ///
     /// # Arguments
@@ -89,7 +110,7 @@ pub(crate) unsafe trait Hardware {
         lhs: *const u8,
         rhs: *const u8,
         dest: *mut u8,
-        size: usize,
+        num_elements: usize,
     );
 
     /// Performs elementwise subtract operation.
@@ -110,7 +131,7 @@ pub(crate) unsafe trait Hardware {
         lhs: *const u8,
         rhs: *const u8,
         dest: *mut u8,
-        size: usize,
+        num_elements: usize,
     );
 
     /// Performs elementwise multiply operation.
@@ -131,7 +152,7 @@ pub(crate) unsafe trait Hardware {
         lhs: *const u8,
         rhs: *const u8,
         dest: *mut u8,
-        size: usize,
+        num_elements: usize,
     );
 
     /// Performs elementwise divide operation.
@@ -152,13 +173,14 @@ pub(crate) unsafe trait Hardware {
         lhs: *const u8,
         rhs: *const u8,
         dest: *mut u8,
-        size: usize,
+        num_elements: usize,
     );
 }
 
 /// Hardware for computation on local CPUs.
 ///
-/// Memories are allocated through `GlobalAlloc`.
+/// Memories on this hardware are identical with the usual host memory and are allocated through
+/// `GlobalAlloc`.
 pub struct CpuHardware;
 
 impl CpuHardware {
@@ -167,7 +189,7 @@ impl CpuHardware {
     /// # Returns
     ///
     /// A new `CpuHardware` object.
-    pub(crate) fn new() -> Self {
+    fn new() -> Self {
         Self {}
     }
 }
@@ -208,17 +230,24 @@ unsafe impl Hardware for CpuHardware {
         std::ptr::copy(src as *const u8, dest, size)
     }
 
+    unsafe fn fill_f32(&mut self, src: *mut u8, value: f32, num_elements: usize) {
+        let src = src as *mut f32;
+        for i in 0..num_elements {
+            *src.add(i) = value;
+        }
+    }
+
     unsafe fn elementwise_add_f32(
         &mut self,
         lhs: *const u8,
         rhs: *const u8,
         dest: *mut u8,
-        size: usize,
+        num_elements: usize,
     ) {
         let lhs = lhs as *const f32;
         let rhs = lhs as *const f32;
         let dest = lhs as *mut f32;
-        for i in 0..size {
+        for i in 0..num_elements {
             *dest.add(i) = *lhs.add(i) + *rhs.add(i);
         }
     }
@@ -228,12 +257,12 @@ unsafe impl Hardware for CpuHardware {
         lhs: *const u8,
         rhs: *const u8,
         dest: *mut u8,
-        size: usize,
+        num_elements: usize,
     ) {
         let lhs = lhs as *const f32;
         let rhs = lhs as *const f32;
         let dest = lhs as *mut f32;
-        for i in 0..size {
+        for i in 0..num_elements {
             *dest.add(i) = *lhs.add(i) - *rhs.add(i);
         }
     }
@@ -242,12 +271,12 @@ unsafe impl Hardware for CpuHardware {
         lhs: *const u8,
         rhs: *const u8,
         dest: *mut u8,
-        size: usize,
+        num_elements: usize,
     ) {
         let lhs = lhs as *const f32;
         let rhs = lhs as *const f32;
         let dest = lhs as *mut f32;
-        for i in 0..size {
+        for i in 0..num_elements {
             *dest.add(i) = *lhs.add(i) * *rhs.add(i);
         }
     }
@@ -256,12 +285,12 @@ unsafe impl Hardware for CpuHardware {
         lhs: *const u8,
         rhs: *const u8,
         dest: *mut u8,
-        size: usize,
+        num_elements: usize,
     ) {
         let lhs = lhs as *const f32;
         let rhs = lhs as *const f32;
         let dest = lhs as *mut f32;
-        for i in 0..size {
+        for i in 0..num_elements {
             *dest.add(i) = *lhs.add(i) / *rhs.add(i);
         }
     }

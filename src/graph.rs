@@ -3,10 +3,10 @@ use std::rc::Rc;
 
 use scoped_tls_hkt::scoped_thread_local;
 
+use crate::array::{make_scalar, Value};
 use crate::error::Error;
 use crate::operator::{self, Operator};
 use crate::result::Result;
-use crate::value::{make_scalar, Value};
 
 scoped_thread_local!(static mut CURRENT_GRAPH: Graph);
 

@@ -1,6 +1,7 @@
 use crate::error::Error;
 use crate::result::Result;
 use std::fmt;
+use std::mem::size_of;
 
 /// Maximum number of dimensions.
 const MAX_LENGTH: usize = 8;
@@ -118,6 +119,19 @@ impl Shape {
     pub fn get_num_elements(&self) -> usize {
         self.dimensions[..self.length].iter().product()
     }
+
+    /// Calculates the memory size required for this shape with a specific value type.
+    ///
+    /// # Type arguments
+    ///
+    /// * `T` - Value type.
+    ///
+    /// # Returns
+    ///
+    /// The size in bytes required to represent this shape.
+    pub fn get_memory_size<T: Sized>(&self) -> usize {
+        self.get_num_elements() * size_of::<T>()
+    }
 }
 
 impl fmt::Display for Shape {
@@ -157,6 +171,17 @@ mod tests {
         assert!(shape.check_is_scalar().is_ok());
         assert!(shape.dimension(0).is_err());
         assert_eq!(shape.get_num_elements(), 1);
+        assert_eq!(shape.get_memory_size::<bool>(), 1);
+        assert_eq!(shape.get_memory_size::<i8>(), 1);
+        assert_eq!(shape.get_memory_size::<i16>(), 2);
+        assert_eq!(shape.get_memory_size::<i32>(), 4);
+        assert_eq!(shape.get_memory_size::<i64>(), 8);
+        assert_eq!(shape.get_memory_size::<u8>(), 1);
+        assert_eq!(shape.get_memory_size::<u16>(), 2);
+        assert_eq!(shape.get_memory_size::<u32>(), 4);
+        assert_eq!(shape.get_memory_size::<u64>(), 8);
+        assert_eq!(shape.get_memory_size::<f32>(), 4);
+        assert_eq!(shape.get_memory_size::<f64>(), 8);
         assert_eq!(format!("{}", shape), "()");
         assert_eq!(shape, make_shape![]);
     }
