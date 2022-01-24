@@ -70,7 +70,7 @@ macro_rules! define_elementwise_binary_op {
             $name,
             lhs,
             rhs,
-            Array::with_default_backend(
+            Array::with_default_hardware(
                 *lhs.shape(),
                 lhs.to_vec()
                     .iter()

@@ -1,16 +1,20 @@
 use once_cell::sync::OnceCell;
 use std::alloc;
-use std::ops;
 use std::sync::Mutex;
 
 /// Default memory alignment for allocating buffers.
 const DEFAULT_MEMORY_ALIGNMENT: usize = 8;
 
 /// Trait for computing backends.
-pub(crate) trait Backend {
-    /// Allocates a new memory with requested size and returns its handle.
-    ///
-    /// This function may abort when memory allocation failed.
+///
+/// This trait provides the set of the lowest instructions that each computation backend are
+/// required to implement. Higher abstraction for user-level computation is provided by `Array`.
+///
+/// As the real hardware lives longer than the programs, structs implementing this trait may be
+/// installed as a static object.
+/// They require implicit/explicit initialization procedure during the program startups.
+pub(crate) unsafe trait Hardware {
+    /// Allocates a new memory with at least the requested size and returns its handle.
     ///
     /// # Arguments
     ///
@@ -19,8 +23,14 @@ pub(crate) trait Backend {
     /// # Returns
     ///
     /// `Handle` of the created memory.
+    /// The handle value may or may not represent a real memory. For example, GPU hardwares may
+    /// represent a virtual address representing a corresponding region on the VRAM.
     ///
-    unsafe fn get_memory(&mut self, size: usize) -> *mut u8;
+    /// # Panics
+    ///
+    /// This function may panic when memory allocation failed for some reason and the implementation
+    /// judged that the failure can not be recovered.
+    unsafe fn allocate_memory(&mut self, size: usize) -> *mut u8;
 
     /// Releases given buffer.
     ///
@@ -30,44 +40,44 @@ pub(crate) trait Backend {
     /// # Arguments
     ///
     /// * `handle` - `Handle` object to release. This value must be one returned by `get_memory` of
-    ///   the same backend.
+    ///   the same hardware.
     /// * `size` - Size in bytes of the allocated memory. This value must be equal to that specified
     ///   at corresponding `get_memory` call.
-    unsafe fn release_memory(&mut self, handle: *mut u8, size: usize);
+    unsafe fn deallocate_memory(&mut self, handle: *mut u8, size: usize);
 
-    /// Copies data from a host memory to a backend memory.
+    /// Copies data from a host memory to a hardware memory.
     ///
     /// # Arguments
     ///
     /// * `src` - Source host memory.
-    /// * `dest` - Target backend memory.
+    /// * `dest` - Target hardware memory.
     /// * `size` - Size in bytes to copy.
     ///
     /// # Requirements
     ///
     /// Both `src` and `dest` owns enough amount of memory to store data with `size` bytes long.
-    unsafe fn copy_host_to_backend(&mut self, src: *const u8, dest: *mut u8, size: usize);
+    unsafe fn copy_host_to_hardware(&mut self, src: *const u8, dest: *mut u8, size: usize);
 
-    /// Copies data from a backend memory to a host memory.
+    /// Copies data from a hardware memory to a host memory.
     ///
     /// # Arguments
     ///
-    /// * `src` - Source backend memory.
+    /// * `src` - Source hardware memory.
     /// * `dest` - Target host memory.
     /// * `size` - Size in bytes to copy.
     ///
     /// # Requirements
     ///
     /// Both `src` and `dest` own enough amount of memory to store data with `size` bytes long.
-    unsafe fn copy_backend_to_host(&mut self, src: *const u8, dest: *mut u8, size: usize);
+    unsafe fn copy_hardware_to_host(&mut self, src: *const u8, dest: *mut u8, size: usize);
 
     /// Performs elementwise add operation.
     ///
     /// # Arguments
     ///
-    /// * `lhs` - Backend memory for left-hand side argument.
-    /// * `rhs` - Backend memory for right-hand side argument.
-    /// * `dest` - Backend memory for destination.
+    /// * `lhs` - Hardware memory for left-hand side argument.
+    /// * `rhs` - Hardware memory for right-hand side argument.
+    /// * `dest` - Hardware memory for destination.
     /// * `num_elements` - Number of elements to be calculated.
     ///
     /// # Requirements
@@ -86,9 +96,9 @@ pub(crate) trait Backend {
     ///
     /// # Arguments
     ///
-    /// * `lhs` - Backend memory for left-hand side argument.
-    /// * `rhs` - Backend memory for right-hand side argument.
-    /// * `dest` - Backend memory for destination.
+    /// * `lhs` - Hardware memory for left-hand side argument.
+    /// * `rhs` - Hardware memory for right-hand side argument.
+    /// * `dest` - Hardware memory for destination.
     /// * `num_elements` - Number of elements to be calculated.
     ///
     /// # Requirements
@@ -107,9 +117,9 @@ pub(crate) trait Backend {
     ///
     /// # Arguments
     ///
-    /// * `lhs` - Backend memory for left-hand side argument.
-    /// * `rhs` - Backend memory for right-hand side argument.
-    /// * `dest` - Backend memory for destination.
+    /// * `lhs` - Hardware memory for left-hand side argument.
+    /// * `rhs` - Hardware memory for right-hand side argument.
+    /// * `dest` - Hardware memory for destination.
     /// * `num_elements` - Number of elements to be calculated.
     ///
     /// # Requirements
@@ -128,9 +138,9 @@ pub(crate) trait Backend {
     ///
     /// # Arguments
     ///
-    /// * `lhs` - Backend memory for left-hand side argument.
-    /// * `rhs` - Backend memory for right-hand side argument.
-    /// * `dest` - Backend memory for destination.
+    /// * `lhs` - Hardware memory for left-hand side argument.
+    /// * `rhs` - Hardware memory for right-hand side argument.
+    /// * `dest` - Hardware memory for destination.
     /// * `num_elements` - Number of elements to be calculated.
     ///
     /// # Requirements
@@ -146,24 +156,24 @@ pub(crate) trait Backend {
     );
 }
 
-/// Backend for computation on local CPUs.
+/// Hardware for computation on local CPUs.
 ///
 /// Memories are allocated through `GlobalAlloc`.
-pub struct CpuBackend;
+pub struct CpuHardware;
 
-impl CpuBackend {
-    /// Creates a new `CpuBackend` object.
+impl CpuHardware {
+    /// Creates a new `CpuHardware` object.
     ///
     /// # Returns
     ///
-    /// A new `CpuBackend` object.
+    /// A new `CpuHardware` object.
     pub(crate) fn new() -> Self {
         Self {}
     }
 }
 
-impl Backend for CpuBackend {
-    unsafe fn get_memory(&mut self, size: usize) -> *mut u8 {
+unsafe impl Hardware for CpuHardware {
+    unsafe fn allocate_memory(&mut self, size: usize) -> *mut u8 {
         let layout = alloc::Layout::from_size_align_unchecked(size, DEFAULT_MEMORY_ALIGNMENT);
         let handle = alloc::alloc(layout);
         if handle.is_null() {
@@ -178,7 +188,7 @@ impl Backend for CpuBackend {
         handle
     }
 
-    unsafe fn release_memory(&mut self, handle: *mut u8, size: usize) {
+    unsafe fn deallocate_memory(&mut self, handle: *mut u8, size: usize) {
         println!(
             "Released a buffer: handle={:16x}, size={}",
             unsafe { handle as usize },
@@ -190,11 +200,11 @@ impl Backend for CpuBackend {
         )
     }
 
-    unsafe fn copy_host_to_backend(&mut self, src: *const u8, dest: *mut u8, size: usize) {
+    unsafe fn copy_host_to_hardware(&mut self, src: *const u8, dest: *mut u8, size: usize) {
         std::ptr::copy(src, dest as *mut u8, size);
     }
 
-    unsafe fn copy_backend_to_host(&mut self, src: *const u8, dest: *mut u8, size: usize) {
+    unsafe fn copy_hardware_to_host(&mut self, src: *const u8, dest: *mut u8, size: usize) {
         std::ptr::copy(src as *const u8, dest, size)
     }
 
@@ -257,10 +267,10 @@ impl Backend for CpuBackend {
     }
 }
 
-/// Returns the default backend.
+/// Returns the default hardware.
 ///
-/// Any arrays without explicit specification of backend falls back to use this backend.
-pub(crate) fn get_default_backend() -> &'static Mutex<Box<dyn Backend>> {
-    static SINGLETON: OnceCell<Mutex<Box<dyn Backend>>> = OnceCell::new();
-    SINGLETON.get_or_init(|| Mutex::new(Box::new(CpuBackend::new())))
+/// Any arrays without explicit specification of hardware falls back to use this hardware.
+pub(crate) fn get_default_hardware() -> &'static Mutex<Box<dyn Hardware>> {
+    static SINGLETON: OnceCell<Mutex<Box<dyn Hardware>>> = OnceCell::new();
+    SINGLETON.get_or_init(|| Mutex::new(Box::new(CpuHardware::new())))
 }

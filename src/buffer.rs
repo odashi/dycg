@@ -1,13 +1,13 @@
-use crate::backend::Backend;
+use crate::hardware::Hardware;
 use std::sync::Mutex;
 
-/// Device-specific memory.
+/// RAII object for hardware-specific memory.
 ///
-/// This struct wraps around the raw handle returned by `Backend`, and owns it during its lifetime.
-/// At `drop()` the owned handle is released using associated `Backend.
+/// This struct wraps around the raw handle returned by `Hardware`, and owns it during its lifetime.
+/// At `drop()` the owned handle is released using associated `Hardware`.
 pub(crate) struct Buffer<'a> {
-    /// Reference to the backend that `pointer` manages.
-    backend: &'a Mutex<Box<dyn Backend>>,
+    /// Reference to the hardware that `pointer` manages.
+    hardware: &'a Mutex<Box<dyn Hardware>>,
 
     /// Size in bytes of the storage.
     size: usize,
@@ -21,30 +21,30 @@ impl<'a> Buffer<'a> {
     ///
     /// # Arguments
     ///
-    /// * `backend` - `Backend` to allocate the handle.
+    /// * `hardware` - `Hardware` to allocate the handle.
     /// * `size` - Size in bytes of the allocated memory.
     ///
     /// # Returns
     ///
     /// A new `Buffer` object owning allocated memory.
-    pub(crate) fn new(backend: &'a Mutex<Box<dyn Backend>>, size: usize) -> Self {
+    pub(crate) fn new(hardware: &'a Mutex<Box<dyn Hardware>>, size: usize) -> Self {
         Self {
-            backend,
+            hardware,
             size,
             handle: unsafe {
                 // Panics immediately when mutex poisoning happened.
-                backend.lock().unwrap().get_memory(size)
+                hardware.lock().unwrap().allocate_memory(size)
             },
         }
     }
 
-    /// Returns the backend to manage owned memory.
+    /// Returns the hardware to manage owned memory.
     ///
     /// # Returns
     ///
-    /// A Reference to the wrapped `Backend` object.
-    pub(crate) fn backend(&self) -> &'a Mutex<Box<dyn Backend>> {
-        self.backend
+    /// A Reference to the wrapped `Hardware` object.
+    pub(crate) fn hardware(&self) -> &'a Mutex<Box<dyn Hardware>> {
+        self.hardware
     }
 
     /// Returns the size of the owned memory.
@@ -79,10 +79,10 @@ impl<'a> Drop for Buffer<'a> {
     fn drop(&mut self) {
         unsafe {
             // Panics immediately when mutex poisoning happened.
-            self.backend
+            self.hardware
                 .lock()
                 .unwrap()
-                .release_memory(self.handle, self.size);
+                .deallocate_memory(self.handle, self.size);
         }
     }
 }

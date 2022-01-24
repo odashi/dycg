@@ -9,11 +9,11 @@ const MAX_LENGTH: usize = 8;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Shape {
     /// Number of dimensions of the shape.
-    /// Only values in `dimensions_` and `strides_` with indices smaller than `length_` are available.
-    length_: usize,
+    /// Only values in `dimensions` and `strides_` with indices smaller than `length` are available.
+    length: usize,
 
     /// Number of values for each dimension.
-    dimensions_: [usize; MAX_LENGTH],
+    dimensions: [usize; MAX_LENGTH],
 }
 
 impl Shape {
@@ -27,8 +27,8 @@ impl Shape {
     /// A new `Shape` object.
     pub fn new0() -> Self {
         Shape {
-            length_: 0,
-            dimensions_: [0; MAX_LENGTH],
+            length: 0,
+            dimensions: [0; MAX_LENGTH],
         }
     }
 
@@ -38,7 +38,7 @@ impl Shape {
     ///
     /// The length of the shape.
     pub fn length(&self) -> usize {
-        self.length_
+        self.length
     }
 
     /// Checks if the given index is valid or not in this shape.
@@ -52,11 +52,11 @@ impl Shape {
     /// * `Ok(())` - `index` is valid in this shape.
     /// * `Err(Error)` = `index` is invalid.
     pub fn check_index(&self, index: usize) -> Result<()> {
-        (index < self.length_)
+        (index < self.length)
             .then(|| ())
             .ok_or(Error::OutOfRange(format!(
                 "Shape index out of range: index:{} >= length:{}",
-                index, self.length_
+                index, self.length
             )))
     }
 
@@ -67,11 +67,11 @@ impl Shape {
     /// * `Ok(())` - Shape represents a scalar.
     /// * `Err(Error)` - Shape does not represent a scalar.
     pub fn check_is_scalar(&self) -> Result<()> {
-        (self.length_ == 0)
+        (self.length == 0)
             .then(|| ())
             .ok_or(Error::InvalidShape(format!(
                 "Shape is not representing a scalar. length: {}",
-                self.length_
+                self.length
             )))
     }
 
@@ -89,7 +89,7 @@ impl Shape {
     ///
     /// `index` must be in `0..self.length()`.
     pub(crate) unsafe fn dimension_unchecked(&self, index: usize) -> usize {
-        *self.dimensions_.get_unchecked(index)
+        *self.dimensions.get_unchecked(index)
     }
 
     /// Obtains the size of the specified dimension in this shape.
@@ -116,7 +116,7 @@ impl Shape {
     ///
     /// The number of elements represented by the shape.
     pub fn get_num_elements(&self) -> usize {
-        self.dimensions_[..self.length_].iter().product()
+        self.dimensions[..self.length].iter().product()
     }
 }
 
@@ -128,7 +128,7 @@ impl fmt::Display for Shape {
         write!(
             f,
             "({})",
-            self.dimensions_[..self.length_]
+            self.dimensions[..self.length]
                 .iter()
                 .map(|x| x.to_string())
                 .collect::<Vec<_>>()

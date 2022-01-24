@@ -1,11 +1,14 @@
-use crate::backend::get_default_backend;
 use crate::buffer::Buffer;
+use crate::hardware::get_default_hardware;
 use crate::make_shape;
 use crate::result::Result;
 use crate::shape::Shape;
 use std::mem::size_of;
 
-/// Trait representing an internal array structure with specific computing backend.
+/// A multidimensional array with specific computing backend.
+///
+/// This structure abstracts most of hardware implementations and provides user-level operations
+/// for array data.
 pub struct Array {
     /// Shape of this array.
     shape: Shape,
@@ -15,7 +18,7 @@ pub struct Array {
 }
 
 impl Array {
-    /// Creates a new Array on the default backend.
+    /// Creates a new Array on the default hardware.
     ///
     /// # Arguments
     ///
@@ -24,11 +27,11 @@ impl Array {
     /// # Returns
     ///
     /// A new `Array` object.
-    pub(crate) fn with_default_backend(shape: Shape) -> Self {
+    pub(crate) fn with_default_hardware(shape: Shape) -> Self {
         Self {
             shape,
             buffer: Buffer::new(
-                get_default_backend(),
+                get_default_hardware(),
                 shape.get_num_elements() * size_of::<f32>(),
             ),
         }
@@ -58,11 +61,15 @@ impl Array {
     pub(crate) fn set_scalar(&mut self, value: f32) -> Result<()> {
         self.shape.check_is_scalar()?;
         unsafe {
-            self.buffer.backend().lock().unwrap().copy_host_to_backend(
-                (&value as *const f32) as *const u8,
-                self.buffer.as_handle_mut(),
-                size_of::<f32>(),
-            )
+            self.buffer
+                .hardware()
+                .lock()
+                .unwrap()
+                .copy_host_to_hardware(
+                    (&value as *const f32) as *const u8,
+                    self.buffer.as_handle_mut(),
+                    size_of::<f32>(),
+                )
         }
         Ok(())
     }
@@ -81,18 +88,23 @@ impl Array {
         self.shape.check_is_scalar()?;
         let mut value: f32;
         unsafe {
-            self.buffer.backend().lock().unwrap().copy_backend_to_host(
-                self.buffer.as_handle(),
-                (&mut value as *mut f32) as *mut u8,
-                size_of::<f32>(),
-            )
+            self.buffer
+                .hardware()
+                .lock()
+                .unwrap()
+                .copy_hardware_to_host(
+                    self.buffer.as_handle(),
+                    (&mut value as *mut f32) as *mut u8,
+                    size_of::<f32>(),
+                )
         }
         Ok(value)
     }
 }
 
+/// For early-stage debugging, will be removed.
 pub(crate) fn make_cpu_scalar(value: f32) -> Array {
-    let array = Array::with_default_backend(make_shape![]);
+    let array = Array::with_default_hardware(make_shape![]);
     array.set_scalar(value);
     array
 }
