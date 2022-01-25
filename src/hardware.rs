@@ -222,18 +222,12 @@ unsafe impl Hardware for CpuHardware {
             // Panics immediately when allocation error occurred.
             alloc::handle_alloc_error(layout);
         }
-        println!(
-            "Allocated a buffer: handle={:16x}, size={}",
-            handle as usize, size
-        );
+        eprintln!("Allocated a buffer: handle={:p}, size={}", handle, size);
         handle
     }
 
     unsafe fn deallocate_memory(&mut self, handle: *mut u8, size: usize) {
-        println!(
-            "Released a buffer: handle={:16x}, size={}",
-            handle as usize, size
-        );
+        eprintln!("Released a buffer: handle={:p}, size={}", handle, size);
         alloc::dealloc(
             handle,
             alloc::Layout::from_size_align_unchecked(size, DEFAULT_MEMORY_ALIGNMENT),

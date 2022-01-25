@@ -130,12 +130,12 @@ impl<'hw> Buffer<'hw> {
     pub(crate) fn check_colocated(&self, other: &Buffer) -> Result<()> {
         self.is_colocated(other)
             .then(|| ())
-            .ok_or(Error::InvalidHardware(format!(
-                "Buffers are not colocated on the same hardware. self: {}, other: {}",
-                // These mutex locks should be performed for different hardwares.
-                self.hardware.lock().unwrap().name(),
-                other.hardware.lock().unwrap().name()
-            )))
+            .ok_or(Error::InvalidHardware((|| {
+                format!(
+                    "Buffers are not colocated on the same hardware. self: {:p}, other: {:p}",
+                    self.hardware, other.hardware,
+                )
+            })()))
     }
 }
 

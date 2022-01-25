@@ -62,7 +62,7 @@ macro_rules! define_binary_op {
                     .get(0)
                     .ok_or(Error::OutOfRange(String::from("inputs[0] does not exist.")))?;
                 let $rhs = inputs
-                    .get(0)
+                    .get(1)
                     .ok_or(Error::OutOfRange(String::from("inputs[1] does not exist.")))?;
                 Ok(vec![Rc::new($impl)])
             }
