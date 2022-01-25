@@ -15,9 +15,36 @@ pub struct Shape {
 
     /// Number of values for each dimension.
     dimensions: [usize; MAX_LENGTH],
+
+    /// Number of elements in this shape.
+    /// Since this value is frequently used, the value is calculated and cached at the
+    /// initialization.
+    num_elements: usize,
 }
 
 impl Shape {
+    /// Common function to create a new `Shape` with calculating inner statistics.
+    ///
+    /// # Arguments
+    ///
+    /// * `length` - Number of dimensions in the new shape.
+    /// * `dimensions` - Number of elements for each dimension.
+    ///
+    /// # Returns
+    ///
+    /// A new `Shape` object.
+    ///
+    /// # Panics
+    ///
+    /// `length` exceeds MAX_LENGTH.
+    fn new_inner(length: usize, dimensions: [usize; MAX_LENGTH]) -> Self {
+        Self {
+            length,
+            dimensions,
+            num_elements: dimensions[..length].iter().product(),
+        }
+    }
+
     /// Creates a new 0-dimensional shape.
     ///
     /// 0-dimensional shape has no dimension/stride values, and has only 1 element.
@@ -27,10 +54,7 @@ impl Shape {
     ///
     /// A new `Shape` object.
     pub fn new0() -> Self {
-        Shape {
-            length: 0,
-            dimensions: [0; MAX_LENGTH],
-        }
+        Self::new_inner(0, [0; MAX_LENGTH])
     }
 
     /// Returns the length (number of dimensions) of this shape.
@@ -116,8 +140,8 @@ impl Shape {
     /// # Returns
     ///
     /// The number of elements represented by the shape.
-    pub fn get_num_elements(&self) -> usize {
-        self.dimensions[..self.length].iter().product()
+    pub fn num_elements(&self) -> usize {
+        self.num_elements
     }
 
     /// Calculates the memory size required for this shape with a specific value type.
@@ -129,8 +153,8 @@ impl Shape {
     /// # Returns
     ///
     /// The size in bytes required to represent this shape.
-    pub fn get_memory_size<T: Sized>(&self) -> usize {
-        self.get_num_elements() * size_of::<T>()
+    pub fn memory_size<T: Sized>(&self) -> usize {
+        self.num_elements * size_of::<T>()
     }
 
     /// Obtains the resulting shape of elementwise binary operation.
@@ -196,18 +220,18 @@ mod tests {
         assert!(shape.check_index(0).is_err());
         assert!(shape.check_is_scalar().is_ok());
         assert!(shape.dimension(0).is_err());
-        assert_eq!(shape.get_num_elements(), 1);
-        assert_eq!(shape.get_memory_size::<bool>(), 1);
-        assert_eq!(shape.get_memory_size::<i8>(), 1);
-        assert_eq!(shape.get_memory_size::<i16>(), 2);
-        assert_eq!(shape.get_memory_size::<i32>(), 4);
-        assert_eq!(shape.get_memory_size::<i64>(), 8);
-        assert_eq!(shape.get_memory_size::<u8>(), 1);
-        assert_eq!(shape.get_memory_size::<u16>(), 2);
-        assert_eq!(shape.get_memory_size::<u32>(), 4);
-        assert_eq!(shape.get_memory_size::<u64>(), 8);
-        assert_eq!(shape.get_memory_size::<f32>(), 4);
-        assert_eq!(shape.get_memory_size::<f64>(), 8);
+        assert_eq!(shape.num_elements(), 1);
+        assert_eq!(shape.memory_size::<bool>(), 1);
+        assert_eq!(shape.memory_size::<i8>(), 1);
+        assert_eq!(shape.memory_size::<i16>(), 2);
+        assert_eq!(shape.memory_size::<i32>(), 4);
+        assert_eq!(shape.memory_size::<i64>(), 8);
+        assert_eq!(shape.memory_size::<u8>(), 1);
+        assert_eq!(shape.memory_size::<u16>(), 2);
+        assert_eq!(shape.memory_size::<u32>(), 4);
+        assert_eq!(shape.memory_size::<u64>(), 8);
+        assert_eq!(shape.memory_size::<f32>(), 4);
+        assert_eq!(shape.memory_size::<f64>(), 8);
         assert_eq!(format!("{}", shape), "()");
         assert_eq!(shape, make_shape![]);
     }

@@ -37,7 +37,7 @@ impl Array {
     pub(crate) unsafe fn raw(hardware: &'static Mutex<Box<dyn Hardware>>, shape: Shape) -> Self {
         Self {
             shape,
-            buffer: Buffer::raw(hardware, shape.get_memory_size::<f32>()),
+            buffer: Buffer::raw(hardware, shape.memory_size::<f32>()),
         }
     }
 
@@ -59,7 +59,7 @@ impl Array {
     pub(crate) unsafe fn raw_colocated(other: &Array, shape: Shape) -> Self {
         Self {
             shape,
-            buffer: Buffer::raw_colocated(&other.buffer, shape.get_memory_size::<f32>()),
+            buffer: Buffer::raw_colocated(&other.buffer, shape.memory_size::<f32>()),
         }
     }
 
@@ -153,7 +153,7 @@ impl Array {
                     self.buffer.as_handle(),
                     other.buffer.as_handle(),
                     output.buffer.as_handle_mut(),
-                    output_shape.get_num_elements(),
+                    output_shape.num_elements(),
                 );
             Ok(output)
         }
@@ -185,7 +185,7 @@ impl Array {
                     self.buffer.as_handle(),
                     other.buffer.as_handle(),
                     output.buffer.as_handle_mut(),
-                    output_shape.get_num_elements(),
+                    output_shape.num_elements(),
                 );
             Ok(output)
         }
@@ -217,7 +217,7 @@ impl Array {
                     self.buffer.as_handle(),
                     other.buffer.as_handle(),
                     output.buffer.as_handle_mut(),
-                    output_shape.get_num_elements(),
+                    output_shape.num_elements(),
                 );
             Ok(output)
         }
@@ -249,7 +249,7 @@ impl Array {
                     self.buffer.as_handle(),
                     other.buffer.as_handle(),
                     output.buffer.as_handle_mut(),
-                    output_shape.get_num_elements(),
+                    output_shape.num_elements(),
                 );
             Ok(output)
         }
