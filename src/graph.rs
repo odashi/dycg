@@ -442,4 +442,15 @@ mod tests {
             assert_eq!(f32::from(ret), 0.5);
         });
     }
+
+    #[test]
+    fn test_multiple_computation() {
+        trace(|| {
+            let a = Node::from(1.);
+            let b = Node::from(2.);
+            let c = Node::from(3.);
+            let y = a + b * c;
+            assert_eq!(f32::from(y), 7.);
+        });
+    }
 }
