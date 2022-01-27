@@ -82,7 +82,7 @@ pub(crate) unsafe trait Hardware: Send {
     ///
     /// # Arguments
     ///
-    /// * `src` - Hardware memory to be filled.
+    /// * `dest` - Hardware memory to be filled.
     /// * `value` - Value to fill.
     /// * `num_elements` - Number of elements to be filled.
     ///
@@ -90,7 +90,7 @@ pub(crate) unsafe trait Hardware: Send {
     ///
     /// `src` own enough amount of memory to store data with `num_elements` elements of the value
     /// type.
-    unsafe fn fill_f32(&mut self, src: *mut u8, value: f32, num_elements: usize);
+    unsafe fn fill_f32(&mut self, dest: *mut u8, value: f32, num_elements: usize);
 
     /// Performs elementwise add operation.
     ///
