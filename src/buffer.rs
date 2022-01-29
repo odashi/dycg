@@ -153,7 +153,6 @@ impl<'hw> Drop for Buffer<'hw> {
 
 #[cfg(test)]
 mod tests {
-    use crate::array::make_cpu_scalar;
     use crate::buffer::Buffer;
     use crate::hardware::{cpu::CpuHardware, Hardware};
     use std::ptr;
@@ -210,6 +209,24 @@ mod tests {
             assert!(ptr::eq(buf2.hardware, &hw));
             assert_eq!(buf2.size, 2);
             assert!(!ptr::eq(buf2.handle, buf1.handle));
+        }
+    }
+
+    #[test]
+    fn test_hardware() {
+        let hw = make_hardware();
+        unsafe {
+            let buf = Buffer::raw(&hw, 1);
+            assert!(ptr::eq(buf.hardware(), &hw));
+        }
+    }
+
+    #[test]
+    fn test_size() {
+        let hw = make_hardware();
+        unsafe {
+            let buf = Buffer::raw(&hw, 123);
+            assert_eq!(buf.size(), 123);
         }
     }
 
