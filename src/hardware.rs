@@ -1,5 +1,5 @@
 mod base;
-mod cpu;
+pub(crate) mod cpu;
 mod default;
 
 pub(crate) use base::Hardware;

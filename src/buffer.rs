@@ -150,3 +150,124 @@ impl<'hw> Drop for Buffer<'hw> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::array::make_cpu_scalar;
+    use crate::buffer::Buffer;
+    use crate::hardware::{cpu::CpuHardware, Hardware};
+    use std::ptr;
+    use std::sync::Mutex;
+
+    /// Helper function to create mutex-guarded CpuHardwre.
+    fn make_hardware() -> Mutex<Box<dyn Hardware>> {
+        Mutex::new(Box::new(CpuHardware::new("test")))
+    }
+
+    #[test]
+    fn test_raw() {
+        let hw1 = make_hardware();
+        let hw2 = make_hardware();
+        let nullptr = ptr::null::<u8>();
+        unsafe {
+            let buf1 = Buffer::raw(&hw1, 1);
+            assert!(ptr::eq(buf1.hardware, &hw1));
+            assert_eq!(buf1.size, 1);
+            assert!(!ptr::eq(buf1.handle, nullptr));
+
+            let buf2 = Buffer::raw(&hw1, 2);
+            assert!(ptr::eq(buf2.hardware, &hw1));
+            assert_eq!(buf2.size, 2);
+            assert!(!ptr::eq(buf2.handle, nullptr));
+            assert!(!ptr::eq(buf2.handle, buf1.handle));
+
+            let buf3 = Buffer::raw(&hw2, 3);
+            assert!(ptr::eq(buf3.hardware, &hw2));
+            assert_eq!(buf3.size, 3);
+            assert!(!ptr::eq(buf3.handle, nullptr));
+            assert!(!ptr::eq(buf3.handle, buf1.handle));
+            assert!(!ptr::eq(buf3.handle, buf2.handle));
+        }
+    }
+
+    #[test]
+    fn test_raw_zero() {
+        let hw = make_hardware();
+        unsafe {
+            let buf = Buffer::raw(&hw, 0);
+            assert!(ptr::eq(buf.hardware, &hw));
+            assert_eq!(buf.size, 0);
+            // We don't care about the pointer value of zero-length memory.
+        }
+    }
+
+    #[test]
+    fn test_raw_colocated() {
+        let hw = make_hardware();
+        unsafe {
+            let buf1 = Buffer::raw(&hw, 1);
+            let buf2 = Buffer::raw_colocated(&buf1, 2);
+            assert!(ptr::eq(buf2.hardware, &hw));
+            assert_eq!(buf2.size, 2);
+            assert!(!ptr::eq(buf2.handle, buf1.handle));
+        }
+    }
+
+    #[test]
+    fn test_as_handle() {
+        let hw = make_hardware();
+        unsafe {
+            let buf = Buffer::raw(&hw, 1);
+            assert!(ptr::eq(buf.as_handle(), buf.handle));
+        }
+    }
+
+    #[test]
+    fn test_as_mut_handle() {
+        let hw = make_hardware();
+        unsafe {
+            let mut buf = Buffer::raw(&hw, 1);
+            assert!(ptr::eq(buf.as_mut_handle(), buf.handle));
+        }
+    }
+
+    #[test]
+    fn test_is_colocated() {
+        let hw1 = make_hardware();
+        let hw2 = make_hardware();
+        unsafe {
+            let buf1 = Buffer::raw(&hw1, 1);
+            let buf2 = Buffer::raw(&hw1, 1);
+            let buf3 = Buffer::raw(&hw2, 1);
+            assert!(buf1.is_colocated(&buf1));
+            assert!(buf1.is_colocated(&buf2));
+            assert!(!buf1.is_colocated(&buf3));
+            assert!(buf2.is_colocated(&buf1));
+            assert!(buf2.is_colocated(&buf2));
+            assert!(!buf2.is_colocated(&buf3));
+            assert!(!buf3.is_colocated(&buf1));
+            assert!(!buf3.is_colocated(&buf2));
+            assert!(buf3.is_colocated(&buf3));
+        }
+    }
+
+    #[test]
+    fn test_check_colocated() {
+        let hw1 = make_hardware();
+        let hw2 = make_hardware();
+        unsafe {
+            let buf1 = Buffer::raw(&hw1, 1);
+            let buf2 = Buffer::raw(&hw1, 1);
+            let buf3 = Buffer::raw(&hw2, 1);
+            assert!(buf1.check_colocated(&buf1).is_ok());
+            assert!(buf1.check_colocated(&buf2).is_ok());
+            assert!(buf1.check_colocated(&buf3).is_err());
+            assert!(buf2.check_colocated(&buf1).is_ok());
+            assert!(buf2.check_colocated(&buf2).is_ok());
+            assert!(buf2.check_colocated(&buf3).is_err());
+            assert!(buf3.check_colocated(&buf1).is_err());
+            assert!(buf3.check_colocated(&buf2).is_err());
+            assert!(buf3.check_colocated(&buf3).is_ok());
+        }
+    }
+}
