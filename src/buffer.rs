@@ -99,7 +99,7 @@ impl<'hw> Buffer<'hw> {
     /// # Returns
     ///
     /// Owned handle as a mutable pointer.
-    pub(crate) unsafe fn as_handle_mut(&mut self) -> *mut u8 {
+    pub(crate) unsafe fn as_mut_handle(&mut self) -> *mut u8 {
         self.handle
     }
 

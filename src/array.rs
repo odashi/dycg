@@ -93,7 +93,7 @@ impl Array {
                 .unwrap()
                 .copy_host_to_hardware(
                     (&value as *const f32) as *const u8,
-                    self.buffer.as_handle_mut(),
+                    self.buffer.as_mut_handle(),
                     size_of::<f32>(),
                 )
         }
@@ -152,7 +152,7 @@ impl Array {
                 .elementwise_add_f32(
                     self.buffer.as_handle(),
                     other.buffer.as_handle(),
-                    output.buffer.as_handle_mut(),
+                    output.buffer.as_mut_handle(),
                     output_shape.num_elements(),
                 );
             Ok(output)
@@ -184,7 +184,7 @@ impl Array {
                 .elementwise_sub_f32(
                     self.buffer.as_handle(),
                     other.buffer.as_handle(),
-                    output.buffer.as_handle_mut(),
+                    output.buffer.as_mut_handle(),
                     output_shape.num_elements(),
                 );
             Ok(output)
@@ -216,7 +216,7 @@ impl Array {
                 .elementwise_mul_f32(
                     self.buffer.as_handle(),
                     other.buffer.as_handle(),
-                    output.buffer.as_handle_mut(),
+                    output.buffer.as_mut_handle(),
                     output_shape.num_elements(),
                 );
             Ok(output)
@@ -248,7 +248,7 @@ impl Array {
                 .elementwise_div_f32(
                     self.buffer.as_handle(),
                     other.buffer.as_handle(),
-                    output.buffer.as_handle_mut(),
+                    output.buffer.as_mut_handle(),
                     output_shape.num_elements(),
                 );
             Ok(output)
