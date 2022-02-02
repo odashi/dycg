@@ -1,24 +1,23 @@
 use crate::buffer::Buffer;
-use crate::hardware::{get_default_hardware, Hardware};
+use crate::hardware::HardwareMutex;
 use crate::make_shape;
 use crate::result::Result;
 use crate::shape::Shape;
 use std::mem::size_of;
-use std::sync::Mutex;
 
 /// A multidimensional array with specific computing backend.
 ///
 /// This structure abstracts most of hardware implementations and provides user-level operations
 /// for array data.
-pub struct Array {
+pub struct Array<'hw> {
     /// Shape of this array.
     shape: Shape,
 
     /// Buffer of the data.
-    buffer: Buffer<'static>,
+    buffer: Buffer<'hw>,
 }
 
-impl Array {
+impl<'hw> Array<'hw> {
     /// Creates a new `Array` on a specific hardware.
     ///
     /// # Arguments
@@ -34,7 +33,7 @@ impl Array {
     ///
     /// This function does not initialize the inner memory.
     /// Users are responsible to initialize the memory immediately by themselves.
-    pub(crate) unsafe fn raw(hardware: &'static Mutex<Box<dyn Hardware>>, shape: Shape) -> Self {
+    pub(crate) unsafe fn raw(hardware: &'hw HardwareMutex, shape: Shape) -> Self {
         Self {
             shape,
             buffer: Buffer::raw(hardware, shape.memory_size::<f32>()),
@@ -56,7 +55,7 @@ impl Array {
     ///
     /// This function does not initialize the inner memory.
     /// Users are responsible to initialize the memory immediately by themselves.
-    pub(crate) unsafe fn raw_colocated(other: &Array, shape: Shape) -> Self {
+    pub(crate) unsafe fn raw_colocated(other: &Array<'hw>, shape: Shape) -> Self {
         Self {
             shape,
             buffer: Buffer::raw_colocated(&other.buffer, shape.memory_size::<f32>()),
@@ -100,6 +99,24 @@ impl Array {
         Ok(())
     }
 
+    /// Creates a new `Array` on the specific hardware.
+    ///
+    /// # Arguments
+    ///
+    /// * `hardware`: `Hardware` object to host the value.
+    /// * `value`: Value of the resulting array.
+    ///
+    /// # Returns
+    ///
+    /// A new `Array` object representing a scalar value.
+    pub(crate) fn new_scalar(hardware: &'hw HardwareMutex, value: f32) -> Self {
+        unsafe {
+            let mut array = Self::raw(hardware, make_shape![]);
+            array.set_scalar(value);
+            array
+        }
+    }
+
     /// Obtains scalar value of this array.
     ///
     /// # Returns
@@ -110,7 +127,7 @@ impl Array {
     ///
     /// * `Ok(f32)` - Scalar value obtained from the array.
     /// * `Err(Error)` - Array is not a scalar.
-    pub(crate) fn into_scalar(&self) -> Result<f32> {
+    pub(crate) fn to_scalar(&self) -> Result<f32> {
         self.shape.check_is_scalar()?;
         let mut value = 0.;
         unsafe {
@@ -256,24 +273,20 @@ impl Array {
     }
 }
 
-/// For early-stage debugging, will be removed.
-pub(crate) fn make_cpu_scalar(value: f32) -> Array {
-    unsafe {
-        let mut array = Array::raw(get_default_hardware(), make_shape![]);
-        array.set_scalar(value).unwrap();
-        array
+impl<'hw> Clone for Array<'hw> {
+    fn clone(&self) -> Self {
+        unsafe {
+            let mut cloned = Self::raw_colocated(self, *self.shape());
+            let mut hw = cloned.buffer.hardware().lock().unwrap();
+            hw.copy_hardware_to_hardware(
+                self.buffer.as_handle(),
+                cloned.buffer.as_mut_handle(),
+                self.shape().memory_size::<f32>(),
+            );
+            cloned
+        }
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::array::make_cpu_scalar;
-    use crate::make_shape;
-
-    #[test]
-    fn test_cpu_scalar() {
-        let value = make_cpu_scalar(123.);
-        assert_eq!(value.shape(), &make_shape![]);
-        assert_eq!(value.into_scalar(), Ok(123.));
-    }
-}
+mod tests {}

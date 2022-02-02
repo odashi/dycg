@@ -96,11 +96,15 @@ unsafe impl Hardware for CpuHardware {
     }
 
     unsafe fn copy_host_to_hardware(&mut self, src: *const u8, dest: *mut u8, size: usize) {
-        std::ptr::copy(src, dest as *mut u8, size);
+        std::ptr::copy(src, dest, size);
     }
 
     unsafe fn copy_hardware_to_host(&mut self, src: *const u8, dest: *mut u8, size: usize) {
-        std::ptr::copy(src as *const u8, dest, size)
+        std::ptr::copy(src, dest, size);
+    }
+
+    unsafe fn copy_hardware_to_hardware(&mut self, src: *const u8, dest: *mut u8, size: usize) {
+        std::ptr::copy(src, dest, size);
     }
 
     unsafe fn fill_f32(&mut self, dest: *mut u8, value: f32, num_elements: usize) {
@@ -173,14 +177,12 @@ unsafe impl Hardware for CpuHardware {
 mod tests {
     use crate::buffer::Buffer;
     use crate::hardware::cpu::CpuHardware;
-    use crate::hardware::Hardware;
+    use crate::hardware::{Hardware, HardwareMutex};
     use std::mem::size_of;
 
-    use std::sync::Mutex;
-
     /// Helper function to create mutex-guarded CpuHardwre.
-    fn make_hardware() -> Mutex<Box<dyn Hardware>> {
-        Mutex::new(Box::new(CpuHardware::new("test")))
+    fn make_hardware() -> HardwareMutex {
+        HardwareMutex::new(Box::new(CpuHardware::new("test")))
     }
 
     #[test]
@@ -265,7 +267,21 @@ mod tests {
             hw.lock()
                 .unwrap()
                 .copy_hardware_to_host(src.as_handle(), dest.as_mut_ptr(), 4);
-            assert_eq!(dest, vec![1, 2, 3, 4])
+            assert_eq!(dest, vec![1, 2, 3, 4]);
+        }
+    }
+
+    #[test]
+    fn test_copy_hardware_to_hardware() {
+        let hw = make_hardware();
+        unsafe {
+            let src = Buffer::raw(&hw, 4);
+            let mut dest = Buffer::raw(&hw, 4);
+            *(src.as_handle() as *mut [u8; 4]) = [1, 2, 3, 4];
+            hw.lock()
+                .unwrap()
+                .copy_hardware_to_host(src.as_handle(), dest.as_mut_handle(), 4);
+            assert_eq!(*(dest.as_handle() as *const [u8; 4]), [1, 2, 3, 4]);
         }
     }
 

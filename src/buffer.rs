@@ -1,8 +1,7 @@
 use crate::error::Error;
-use crate::hardware::Hardware;
+use crate::hardware::HardwareMutex;
 use crate::result::Result;
 use std::ptr;
-use std::sync::Mutex;
 
 /// RAII object for hardware-specific memory.
 ///
@@ -12,7 +11,7 @@ use std::sync::Mutex;
 /// This object can only be alive during the lifetime of the specified hardware.
 pub(crate) struct Buffer<'hw> {
     /// Reference to the hardware that `pointer` manages.
-    hardware: &'hw Mutex<Box<dyn Hardware>>,
+    hardware: &'hw HardwareMutex,
 
     /// Size in bytes of the storage.
     size: usize,
@@ -26,7 +25,7 @@ impl<'hw> Buffer<'hw> {
     ///
     /// # Arguments
     ///
-    /// * `hardware` - `Hardware` to allocate the handle.
+    /// * `hardware` - `HardwareMutex` to allocate the handle.
     /// * `size` - Size in bytes of the allocated memory.
     ///
     /// # Returns
@@ -38,7 +37,7 @@ impl<'hw> Buffer<'hw> {
     /// This function does not initialize the data on the allocated memory, and users are
     /// responsible to initialize the memory immediately by themselves.
     /// Using this object without explicit initialization causes undefined behavior.
-    pub(crate) unsafe fn raw(hardware: &'hw Mutex<Box<dyn Hardware>>, size: usize) -> Self {
+    pub(crate) unsafe fn raw(hardware: &'hw HardwareMutex, size: usize) -> Self {
         // Panics immediately when mutex poisoning happened.
         Self {
             hardware,
@@ -72,7 +71,7 @@ impl<'hw> Buffer<'hw> {
     /// # Returns
     ///
     /// A Reference to the wrapped `Hardware` object.
-    pub(crate) fn hardware(&self) -> &'hw Mutex<Box<dyn Hardware>> {
+    pub(crate) fn hardware(&self) -> &'hw HardwareMutex {
         self.hardware
     }
 
@@ -154,13 +153,12 @@ impl<'hw> Drop for Buffer<'hw> {
 #[cfg(test)]
 mod tests {
     use crate::buffer::Buffer;
-    use crate::hardware::{cpu::CpuHardware, Hardware};
+    use crate::hardware::{cpu::CpuHardware, HardwareMutex};
     use std::ptr;
-    use std::sync::Mutex;
 
     /// Helper function to create mutex-guarded CpuHardwre.
-    fn make_hardware() -> Mutex<Box<dyn Hardware>> {
-        Mutex::new(Box::new(CpuHardware::new("test")))
+    fn make_hardware() -> HardwareMutex {
+        HardwareMutex::new(Box::new(CpuHardware::new("test")))
     }
 
     #[test]

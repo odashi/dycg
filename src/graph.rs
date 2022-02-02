@@ -1,48 +1,146 @@
 use std::fmt;
-use std::rc::Rc;
+use std::ptr;
+use std::sync::{LockResult, Mutex, MutexGuard};
 
-use scoped_tls_hkt::scoped_thread_local;
-
-use crate::array::{make_cpu_scalar, Array};
+use crate::array::Array;
 use crate::error::Error;
+use crate::hardware::HardwareMutex;
 use crate::operator::{self, Operator};
 use crate::result::Result;
 
-scoped_thread_local!(static mut CURRENT_GRAPH: Graph);
-
-/// Individual step in computation graphs.
-/// Step owns an Operator which consumes several values produced by preceding steps.
-pub(crate) struct Step {
-    /// Operator owned by this step.
-    operator: Box<dyn Operator>,
-
-    /// Input nodes.
-    inputs: Vec<Node>,
-
-    /// Output values.
-    outputs: Option<Vec<Rc<Array>>>,
-}
-
-/// Node in an computation graph.
+/// Address pointing to an individual value in a Graph.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Node {
+pub struct NodeAddress {
+    /// Step ID.
     step_id: usize,
+
+    /// Output ID.
     output_id: usize,
 }
 
-impl fmt::Display for Node {
+impl fmt::Display for NodeAddress {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "<{}:{}>", self.step_id, self.output_id)
     }
 }
 
-/// Computation graph.
-pub(crate) struct Graph {
-    /// All steps registered to this graph.
-    steps: Vec<Step>,
+struct GraphMutex<'hw, 'g> {
+    mutex: Mutex<Box<Graph<'hw, 'g>>>,
 }
 
-impl Graph {
+impl<'hw, 'g> GraphMutex<'hw, 'g> {
+    fn lock(&self) -> LockResult<MutexGuard<Box<Graph<'hw, 'g>>>> {
+        self.mutex.lock()
+    }
+
+    fn add_step(
+        &'g self,
+        operator: Box<dyn Operator<'hw> + 'g>,
+        inputs: Vec<Node<'hw, 'g>>,
+    ) -> Result<Vec<Node<'hw, 'g>>> {
+        Ok(self
+            .lock()
+            .unwrap()
+            .add_step(
+                operator,
+                inputs.iter().map(|node| node.address).collect::<Vec<_>>(),
+            )?
+            .iter()
+            .map(|address| Node::new(self, *address))
+            .collect::<Vec<_>>())
+    }
+}
+
+impl<'hw, 'g> PartialEq for GraphMutex<'hw, 'g> {
+    fn eq(&self, other: &Self) -> bool {
+        ptr::eq(self, other)
+    }
+}
+
+impl<'hw, 'g> Eq for GraphMutex<'hw, 'g> {}
+
+/// Node in an computation graph.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Node<'hw, 'g> {
+    /// Reference to the associated graph.
+    graph: &'g GraphMutex<'hw, 'g>,
+
+    /// Address of the value in the graph.
+    address: NodeAddress,
+}
+
+impl<'hw, 'g> Node<'hw, 'g> {
+    pub(crate) fn new(graph: &'g GraphMutex<'hw, 'g>, address: NodeAddress) -> Self {
+        Self { graph, address }
+    }
+
+    pub fn from_scalar(
+        hardware: &'hw HardwareMutex,
+        graph: &'g GraphMutex<'hw, 'g>,
+        value: f32,
+    ) -> Self {
+        graph
+            .add_step(
+                Box::new(operator::Constant::new(Array::new_scalar(hardware, value))),
+                vec![],
+            )
+            .unwrap()
+            .pop()
+            .unwrap()
+    }
+
+    pub fn to_scalar(&self) -> f32 {
+        self.graph
+            .lock()
+            .unwrap()
+            .calculate(&self.address)
+            .unwrap()
+            .to_scalar()
+            .unwrap()
+    }
+}
+
+impl<'hw, 'g> fmt::Display for Node<'hw, 'g> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.address.fmt(f)
+    }
+}
+
+//// Individual step in computation graphs.
+/// Step owns an Operator which consumes several values produced by preceding steps.
+pub(crate) struct Step<'hw, 'g> {
+    /// Operator owned by this step.
+    operator: Box<dyn Operator<'hw> + 'g>,
+
+    /// Input nodes.
+    inputs: Vec<NodeAddress>,
+
+    /// Output values.
+    outputs: Option<Vec<Array<'hw>>>,
+}
+
+impl<'hw, 'g> Step<'hw, 'g> {
+    /// Creates a new `Step` object.
+    fn new(
+        operator: Box<dyn Operator<'hw> + 'g>,
+        inputs: Vec<NodeAddress>,
+        outputs: Option<Vec<Array<'hw>>>,
+    ) -> Self {
+        Self {
+            operator,
+            inputs,
+            outputs,
+        }
+    }
+}
+
+// Computation graph.
+pub(crate) struct Graph<'hw, 'g> {
+    /// All steps registered to this graph.
+    steps: Vec<Step<'hw, 'g>>,
+}
+
+impl<'hw, 'g> Graph<'hw, 'g> {
     /// Creates a new empty `Graph` object.
     ///
     /// # Returns
@@ -52,34 +150,34 @@ impl Graph {
         Self { steps: vec![] }
     }
 
-    /// Checks if the `Node` is valid for this Graph.
+    /// Checks if the `NodeAddress` is valid for this Graph.
     ///
     /// # Arguments
     ///
-    /// * `node` - `Node` object to be checked.
+    /// * `address` - `NodeAddress` object to be checked.
     ///
     /// # Returns
     ///
-    /// * `Ok(())` - The `node` is valid in this graph.
-    /// * `Err(Error)` - The `node` is invalid for returned reason.
-    fn check_node(&self, node: Node) -> Result<()> {
-        if node.step_id >= self.steps.len() {
+    /// * `Ok(())` - The `address` is valid in this graph.
+    /// * `Err(Error)` - The `address` is invalid for returned reason.
+    fn check_address(&'g self, addr: &NodeAddress) -> Result<()> {
+        if addr.step_id >= self.steps.len() {
             return Err(Error::InvalidNode(format!(
-                "Node {} does not point to a valid node.",
-                node
+                "NodeAddress {} does not point to a valid node.",
+                addr
             )));
         }
         unsafe {
-            if node.output_id
+            if addr.output_id
                 >= self
                     .steps
-                    .get_unchecked(node.step_id)
+                    .get_unchecked(addr.step_id)
                     .operator
                     .output_size()
             {
                 return Err(Error::InvalidNode(format!(
-                    "Node {} points to a valid node, but does not point to a valid output.",
-                    node
+                    "NodeAddress {} points to a valid node, but does not point to a valid output.",
+                    addr
                 )));
             }
         }
@@ -99,10 +197,10 @@ impl Graph {
     ///   points to output values.
     /// * `Err(Error)` - Some error occurred during the process.
     pub(crate) fn add_step(
-        &mut self,
-        operator: Box<dyn Operator>,
-        inputs: Vec<Node>,
-    ) -> Result<Vec<Node>> {
+        &'g mut self,
+        operator: Box<dyn Operator<'hw> + 'g>,
+        inputs: Vec<NodeAddress>,
+    ) -> Result<Vec<NodeAddress>> {
         let new_step_id = self.steps.len();
         let input_size = operator.input_size();
         let output_size = operator.output_size();
@@ -121,18 +219,14 @@ impl Graph {
             )));
         }
 
-        for &node in &inputs {
-            self.check_node(node)?;
+        for &address in &inputs {
+            self.check_address(&address)?;
         }
 
-        self.steps.push(Step {
-            operator,
-            inputs,
-            outputs: None,
-        });
+        self.steps.push(Step::new(operator, inputs, None));
 
         Ok((0..output_size)
-            .map(|output_id| Node {
+            .map(|output_id| NodeAddress {
                 step_id: new_step_id,
                 output_id,
             })
@@ -153,7 +247,7 @@ impl Graph {
     /// # Requirements
     ///
     /// The specified step ID is valid in the graph.
-    unsafe fn is_calculated_unchecked(&self, step_id: usize) -> bool {
+    unsafe fn is_calculated_unchecked(&'g self, step_id: usize) -> bool {
         self.steps.get_unchecked(step_id).outputs.is_some()
     }
 
@@ -161,7 +255,7 @@ impl Graph {
     ///
     /// # Arguments
     ///
-    /// * `node` - Target node to obtain the calculated value.
+    /// * `address` - Target node to obtain the calculated value.
     ///
     /// # Returns
     ///
@@ -169,15 +263,16 @@ impl Graph {
     ///
     /// # Requirements
     ///
-    /// * The specified node (step/output IDs) is valid in the graph.
+    /// * The specified `address` (step/output IDs) is valid in the graph.
     /// * The associated step is already calculated.
-    unsafe fn get_value_unchecked(&self, node: Node) -> &Rc<Array> {
+    unsafe fn get_value_unchecked(&'g self, address: NodeAddress) -> Array<'hw> {
         self.steps
-            .get_unchecked(node.step_id)
+            .get_unchecked(address.step_id)
             .outputs
             .as_ref()
             .unwrap()
-            .get_unchecked(node.output_id)
+            .get_unchecked(address.output_id)
+            .clone()
     }
 
     /// Performs calculation to obtain the value of specified node.
@@ -189,13 +284,13 @@ impl Graph {
     ///
     /// # Arguments
     ///
-    /// * `target` - Target node to obtain the value.
+    /// * `target` - Target address to obtain the value.
     ///
     /// # Returns
     ///
     /// * Calculated/cached value associated to `target`.
-    pub(crate) fn calculate(&mut self, target: Node) -> Result<&Rc<Array>> {
-        self.check_node(target)?;
+    pub(crate) fn calculate(&'g mut self, target: &NodeAddress) -> Result<Array<'hw>> {
+        self.check_address(target)?;
 
         // Actions for the push-down automaton representing the following procedure:
         /*
@@ -242,15 +337,9 @@ impl Graph {
                             .inputs
                             .iter()
                             .map(|node| {
-                                self.steps
-                                    .get_unchecked(node.step_id)
-                                    .outputs
-                                    .as_ref()
-                                    .unwrap()
-                                    .get_unchecked(node.output_id)
-                                    .as_ref()
+                                self.steps[node.step_id].outputs.as_ref().unwrap()[node.output_id]
                             })
-                            .collect::<Vec<&Array>>();
+                            .collect::<Vec<Array<'hw>>>();
 
                         // Perform the operator.
                         self.steps.get_unchecked_mut(step_id).outputs =
@@ -260,118 +349,51 @@ impl Graph {
             }
         }
 
-        Ok(unsafe { self.get_value_unchecked(target) })
-    }
-}
-
-/// Enters a new runtime context with a new `Graph` object.
-///
-/// This function manages a lifetime of the global context of `Graph`.
-/// A `Graph` is only available within the provided closure to this function.
-///
-/// By the API design this function can be called recursively, but the actual behavior is not
-/// supported.
-///
-/// For concurrency, this function supports multithreading, but the actual behavior is not
-/// guaranteed. This function does not also support asynchronous calls for now.
-///
-/// # Arguments
-///
-/// * `callback` - Callback procedure for the new runtime context. The same `Graph` object is
-///   associated during the `callback` is processed unless this function is called recursively.
-pub fn trace(callback: impl FnOnce() -> ()) -> () {
-    CURRENT_GRAPH.set(&mut Graph::new(), callback);
-}
-
-/// Enters a new runtime context by obtaining the current `Graph` object.
-///
-/// This function can not be called recursively with only itself.
-///
-/// During processing the associated callback, this function releases the current `Graph` from the
-/// context, and it will be restored at finalizing this function.
-///
-/// # Arguments
-///
-/// * `callback` - Callback procedure for the new runtime context. `callback` receives the current
-///   `Graph` object and it can be used during its scope.
-///
-/// # Returns
-///
-/// Returned value from the `callback`.
-pub(crate) fn with_current_graph<T>(callback: impl FnOnce(&mut Graph) -> T) -> T {
-    CURRENT_GRAPH.with(callback)
-}
-
-/// Direct conversion from a floating nubmer to `Node`.
-impl From<f32> for Node {
-    fn from(src: f32) -> Self {
-        with_current_graph(|g| unsafe {
-            *g.add_step(
-                Box::new(operator::Constant::new(make_cpu_scalar(src))),
-                vec![],
-            )
-            .unwrap()
-            .get_unchecked(0)
-        })
-    }
-}
-
-/// Reverse conversion from `Node` to a floating number.
-impl From<Node> for f32 {
-    fn from(src: Node) -> Self {
-        with_current_graph(|g| g.calculate(src).unwrap().into_scalar().unwrap())
+        Ok(unsafe { self.get_value_unchecked(*target) })
     }
 }
 
 /// "+" operator for `Node`.
-impl std::ops::Add for Node {
+impl<'hw, 'g> std::ops::Add for Node<'hw, 'g> {
     type Output = Self;
 
-    fn add(self, other: Self) -> Self {
-        with_current_graph(|g| unsafe {
-            *g.add_step(Box::new(operator::Add::new()), vec![self, other])
-                .unwrap()
-                .get_unchecked(0)
-        })
+    fn add(self, other: Self) -> Self::Output {
+        self.graph
+            .add_step(Box::new(operator::Add::new()), vec![self, other])
+            .unwrap()[0]
     }
 }
 
 /// "-" operator for `Node`.
-impl std::ops::Sub for Node {
+impl<'hw, 'g> std::ops::Sub for Node<'hw, 'g> {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self {
-        with_current_graph(|g| unsafe {
-            *g.add_step(Box::new(operator::Sub::new()), vec![self, other])
-                .unwrap()
-                .get_unchecked(0)
-        })
+        self.graph
+            .add_step(Box::new(operator::Sub::new()), vec![self, other])
+            .unwrap()[0]
     }
 }
 
 /// "*" operator for `Node`.
-impl std::ops::Mul for Node {
+impl<'hw, 'g> std::ops::Mul for Node<'hw, 'g> {
     type Output = Self;
 
     fn mul(self, other: Self) -> Self {
-        with_current_graph(|g| unsafe {
-            *g.add_step(Box::new(operator::Mul::new()), vec![self, other])
-                .unwrap()
-                .get_unchecked(0)
-        })
+        self.graph
+            .add_step(Box::new(operator::Mul::new()), vec![self, other])
+            .unwrap()[0]
     }
 }
 
 /// "/" operator for `Node`.
-impl std::ops::Div for Node {
+impl<'hw, 'g> std::ops::Div for Node<'hw, 'g> {
     type Output = Self;
 
     fn div(self, other: Self) -> Self {
-        with_current_graph(|g| unsafe {
-            *g.add_step(Box::new(operator::Div::new()), vec![self, other])
-                .unwrap()
-                .get_unchecked(0)
-        })
+        self.graph
+            .add_step(Box::new(operator::Div::new()), vec![self, other])
+            .unwrap()[0]
     }
 }
 
@@ -389,9 +411,9 @@ mod tests {
 
             #[rustfmt::skip]
             (|| {
-                assert_eq!(lhs, Node { step_id: 0, output_id: 0 });
-                assert_eq!(rhs, Node { step_id: 1, output_id: 0 });
-                assert_eq!(ret, Node { step_id: 2, output_id: 0 });
+                assert_eq!(lhs, Node { _phantom: PhantomData, step_id: 0, output_id: 0 });
+                assert_eq!(rhs, Node { _phantom: PhantomData, step_id: 1, output_id: 0 });
+                assert_eq!(ret, Node { _phantom: PhantomData, step_id: 2, output_id: 0 });
             })();
 
             with_current_graph(|g| {
@@ -405,12 +427,10 @@ mod tests {
 
     #[test]
     fn test_add() {
-        trace(|| {
-            let lhs = Node::from(1.);
-            let rhs = Node::from(2.);
-            let ret = lhs + rhs;
-            assert_eq!(f32::from(ret), 3.);
-        });
+        let lhs = Node::from(1.);
+        let rhs = Node::from(2.);
+        let ret = lhs + rhs;
+        assert_eq!(f32::from(ret), 3.);
     }
 
     #[test]

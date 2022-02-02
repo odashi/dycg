@@ -1,3 +1,6 @@
+use std::ptr;
+use std::sync::{LockResult, Mutex, MutexGuard};
+
 /// Trait for computing backends.
 ///
 /// This trait provides the set of the lowest instructions that each computation backend are
@@ -77,6 +80,19 @@ pub(crate) unsafe trait Hardware: Send {
     ///
     /// Both `src` and `dest` own enough amount of memory to store data with `size` bytes long.
     unsafe fn copy_hardware_to_host(&mut self, src: *const u8, dest: *mut u8, size: usize);
+
+    /// Copies data between hardware memories.
+    ///
+    /// # Arguments
+    ///
+    /// * `src` - Source hardware memory.
+    /// * `dest` - Target hardware memory.
+    /// * `size` - Size in bytes to copy.
+    ///
+    /// # Requirements
+    ///
+    /// Both `src` and `dest` own enough amount of memory to store data with `size` bytes long.
+    unsafe fn copy_hardware_to_hardware(&mut self, src: *const u8, dest: *mut u8, size: usize);
 
     /// Fills the memory with specified data.
     ///
@@ -176,3 +192,28 @@ pub(crate) unsafe trait Hardware: Send {
         num_elements: usize,
     );
 }
+
+/// Mutex object to wrap hardware.
+pub struct HardwareMutex {
+    mutex: Mutex<Box<dyn Hardware>>,
+}
+
+impl HardwareMutex {
+    pub(crate) fn new(hardware: Box<dyn Hardware>) -> Self {
+        Self {
+            mutex: Mutex::new(hardware),
+        }
+    }
+
+    pub(crate) fn lock(&self) -> LockResult<MutexGuard<Box<dyn Hardware>>> {
+        self.mutex.lock()
+    }
+}
+
+impl PartialEq for HardwareMutex {
+    fn eq(&self, other: &Self) -> bool {
+        ptr::eq(self, other)
+    }
+}
+
+impl Eq for HardwareMutex {}
