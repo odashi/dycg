@@ -304,7 +304,7 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
             match action {
                 Action::Fetch => {
                     unsafe {
-                        // If the node holds a value already, we don't need to do nothing.
+                        // If the node holds a value already, we need to do nothing.
                         if self.is_calculated_unchecked(step_id) {
                             continue;
                         }
