@@ -75,6 +75,10 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
                 "Attempted calculation between Nodes on different Graph."
             )))
     }
+
+    pub fn calculate(&self) -> Result<Array<'hw>> {
+        self.graph.borrow_mut().calculate(&self.address)
+    }
 }
 
 impl<'hw: 'op, 'op: 'g, 'g> fmt::Display for Node<'hw, 'op, 'g> {
@@ -447,7 +451,7 @@ mod tests {
         })();
 
         assert_eq!(g.borrow().steps.len(), 3);
-        let retval = g.borrow_mut().calculate(&ret.address).unwrap();
+        let retval = ret.calculate().unwrap();
         assert_eq!(*retval.shape(), make_shape![]);
         assert_eq!(retval.to_scalar(), Ok(3.));
     }
@@ -460,10 +464,7 @@ mod tests {
         let lhs = Node::from_scalar(&hw, &g, 1.);
         let rhs = Node::from_scalar(&hw, &g, 2.);
         let ret = lhs + rhs;
-        assert_eq!(
-            g.borrow_mut().calculate(&ret.address).unwrap().to_scalar(),
-            Ok(3.)
-        );
+        assert_eq!(ret.calculate().unwrap().to_scalar(), Ok(3.));
     }
 
     #[test]
@@ -474,10 +475,7 @@ mod tests {
         let lhs = Node::from_scalar(&hw, &g, 1.);
         let rhs = Node::from_scalar(&hw, &g, 2.);
         let ret = lhs - rhs;
-        assert_eq!(
-            g.borrow_mut().calculate(&ret.address).unwrap().to_scalar(),
-            Ok(-1.)
-        );
+        assert_eq!(ret.calculate().unwrap().to_scalar(), Ok(-1.));
     }
 
     #[test]
@@ -488,10 +486,7 @@ mod tests {
         let lhs = Node::from_scalar(&hw, &g, 1.);
         let rhs = Node::from_scalar(&hw, &g, 2.);
         let ret = lhs * rhs;
-        assert_eq!(
-            g.borrow_mut().calculate(&ret.address).unwrap().to_scalar(),
-            Ok(2.)
-        );
+        assert_eq!(ret.calculate().unwrap().to_scalar(), Ok(2.));
     }
 
     #[test]
@@ -502,10 +497,7 @@ mod tests {
         let lhs = Node::from_scalar(&hw, &g, 1.);
         let rhs = Node::from_scalar(&hw, &g, 2.);
         let ret = lhs / rhs;
-        assert_eq!(
-            g.borrow_mut().calculate(&ret.address).unwrap().to_scalar(),
-            Ok(0.5)
-        );
+        assert_eq!(ret.calculate().unwrap().to_scalar(), Ok(0.5));
     }
 
     #[test]
@@ -517,9 +509,6 @@ mod tests {
         let b = Node::from_scalar(&hw, &g, 2.);
         let c = Node::from_scalar(&hw, &g, 3.);
         let y = a + b * c;
-        assert_eq!(
-            g.borrow_mut().calculate(&y.address).unwrap().to_scalar(),
-            Ok(7.)
-        );
+        assert_eq!(y.calculate().unwrap().to_scalar(), Ok(7.));
     }
 }
