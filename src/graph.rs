@@ -1,12 +1,11 @@
-use std::fmt;
-use std::ptr;
-use std::sync::{LockResult, Mutex, MutexGuard};
-
 use crate::array::Array;
 use crate::error::Error;
-use crate::hardware::HardwareMutex;
+use crate::hardware::Hardware;
 use crate::operator::{self, Operator};
 use crate::result::Result;
+use std::cell::RefCell;
+use std::fmt;
+use std::ptr;
 
 /// Address pointing to an individual value in a Graph.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -24,93 +23,85 @@ impl fmt::Display for NodeAddress {
     }
 }
 
-struct GraphMutex<'hw, 'g> {
-    mutex: Mutex<Box<Graph<'hw, 'g>>>,
-}
-
-impl<'hw, 'g> GraphMutex<'hw, 'g> {
-    fn lock(&self) -> LockResult<MutexGuard<Box<Graph<'hw, 'g>>>> {
-        self.mutex.lock()
-    }
-
-    fn add_step(
-        &'g self,
-        operator: Box<dyn Operator<'hw> + 'g>,
-        inputs: Vec<Node<'hw, 'g>>,
-    ) -> Result<Vec<Node<'hw, 'g>>> {
-        Ok(self
-            .lock()
-            .unwrap()
-            .add_step(
-                operator,
-                inputs.iter().map(|node| node.address).collect::<Vec<_>>(),
-            )?
-            .iter()
-            .map(|address| Node::new(self, *address))
-            .collect::<Vec<_>>())
-    }
-}
-
-impl<'hw, 'g> PartialEq for GraphMutex<'hw, 'g> {
-    fn eq(&self, other: &Self) -> bool {
-        ptr::eq(self, other)
-    }
-}
-
-impl<'hw, 'g> Eq for GraphMutex<'hw, 'g> {}
-
 /// Node in an computation graph.
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct Node<'hw, 'g> {
+#[derive(Clone, Copy)]
+pub struct Node<'hw: 'op, 'op: 'g, 'g> {
     /// Reference to the associated graph.
-    graph: &'g GraphMutex<'hw, 'g>,
+    graph: &'g RefCell<Graph<'hw, 'op>>,
 
     /// Address of the value in the graph.
     address: NodeAddress,
 }
 
-impl<'hw, 'g> Node<'hw, 'g> {
-    pub(crate) fn new(graph: &'g GraphMutex<'hw, 'g>, address: NodeAddress) -> Self {
+impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
+    fn new(graph: &'g RefCell<Graph<'hw, 'op>>, address: NodeAddress) -> Self {
         Self { graph, address }
     }
 
     pub fn from_scalar(
-        hardware: &'hw HardwareMutex,
-        graph: &'g GraphMutex<'hw, 'g>,
+        hardware: &'hw RefCell<dyn Hardware>,
+        graph: &'g RefCell<Graph<'hw, 'op>>,
         value: f32,
     ) -> Self {
-        graph
-            .add_step(
-                Box::new(operator::Constant::new(Array::new_scalar(hardware, value))),
-                vec![],
-            )
-            .unwrap()
-            .pop()
-            .unwrap()
+        Self {
+            graph,
+            address: graph
+                .borrow_mut()
+                .add_step(
+                    Box::new(operator::Constant::new(Array::new_scalar(hardware, value))),
+                    vec![],
+                )
+                .unwrap()
+                .pop()
+                .unwrap(),
+        }
     }
 
     pub fn to_scalar(&self) -> f32 {
         self.graph
-            .lock()
-            .unwrap()
+            .borrow_mut()
             .calculate(&self.address)
             .unwrap()
             .to_scalar()
             .unwrap()
     }
-}
 
-impl<'hw, 'g> fmt::Display for Node<'hw, 'g> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.address.fmt(f)
+    pub fn check_graph(&self, others: &[&Self]) -> Result<&'g RefCell<Graph<'hw, 'op>>> {
+        others
+            .iter()
+            .all(|&o| ptr::eq(self.graph, o.graph))
+            .then(|| self.graph)
+            .ok_or(Error::InvalidGraph(format!(
+                "Attempted calculation between Nodes on different Graph."
+            )))
     }
 }
 
+impl<'hw: 'op, 'op: 'g, 'g> fmt::Display for Node<'hw, 'op, 'g> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:016p}:{}", self.graph, self.address)
+    }
+}
+
+impl<'hw: 'op, 'op: 'g, 'g> fmt::Debug for Node<'hw, 'op, 'g> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:016p}:{}", self.graph, self.address)
+    }
+}
+
+impl<'hw: 'op, 'op: 'g, 'g> PartialEq for Node<'hw, 'op, 'g> {
+    fn eq(&self, other: &Self) -> bool {
+        ptr::eq(self.graph, other.graph) && self.address == other.address
+    }
+}
+
+impl<'hw: 'op, 'op: 'g, 'g> Eq for Node<'hw, 'op, 'g> {}
+
 //// Individual step in computation graphs.
 /// Step owns an Operator which consumes several values produced by preceding steps.
-pub(crate) struct Step<'hw, 'g> {
+pub(crate) struct Step<'hw: 'op, 'op> {
     /// Operator owned by this step.
-    operator: Box<dyn Operator<'hw> + 'g>,
+    operator: Box<dyn Operator<'hw> + 'op>,
 
     /// Input nodes.
     inputs: Vec<NodeAddress>,
@@ -119,10 +110,10 @@ pub(crate) struct Step<'hw, 'g> {
     outputs: Option<Vec<Array<'hw>>>,
 }
 
-impl<'hw, 'g> Step<'hw, 'g> {
+impl<'hw: 'op, 'op> Step<'hw, 'op> {
     /// Creates a new `Step` object.
     fn new(
-        operator: Box<dyn Operator<'hw> + 'g>,
+        operator: Box<dyn Operator<'hw> + 'op>,
         inputs: Vec<NodeAddress>,
         outputs: Option<Vec<Array<'hw>>>,
     ) -> Self {
@@ -135,12 +126,12 @@ impl<'hw, 'g> Step<'hw, 'g> {
 }
 
 // Computation graph.
-pub(crate) struct Graph<'hw, 'g> {
+pub struct Graph<'hw: 'op, 'op> {
     /// All steps registered to this graph.
-    steps: Vec<Step<'hw, 'g>>,
+    steps: Vec<Step<'hw, 'op>>,
 }
 
-impl<'hw, 'g> Graph<'hw, 'g> {
+impl<'hw: 'op, 'op> Graph<'hw, 'op> {
     /// Creates a new empty `Graph` object.
     ///
     /// # Returns
@@ -160,7 +151,7 @@ impl<'hw, 'g> Graph<'hw, 'g> {
     ///
     /// * `Ok(())` - The `address` is valid in this graph.
     /// * `Err(Error)` - The `address` is invalid for returned reason.
-    fn check_address(&'g self, addr: &NodeAddress) -> Result<()> {
+    fn check_address(&self, addr: &NodeAddress) -> Result<()> {
         if addr.step_id >= self.steps.len() {
             return Err(Error::InvalidNode(format!(
                 "NodeAddress {} does not point to a valid node.",
@@ -197,8 +188,8 @@ impl<'hw, 'g> Graph<'hw, 'g> {
     ///   points to output values.
     /// * `Err(Error)` - Some error occurred during the process.
     pub(crate) fn add_step(
-        &'g mut self,
-        operator: Box<dyn Operator<'hw> + 'g>,
+        &mut self,
+        operator: Box<dyn Operator<'hw> + 'op>,
         inputs: Vec<NodeAddress>,
     ) -> Result<Vec<NodeAddress>> {
         let new_step_id = self.steps.len();
@@ -247,7 +238,7 @@ impl<'hw, 'g> Graph<'hw, 'g> {
     /// # Requirements
     ///
     /// The specified step ID is valid in the graph.
-    unsafe fn is_calculated_unchecked(&'g self, step_id: usize) -> bool {
+    unsafe fn is_calculated_unchecked(&self, step_id: usize) -> bool {
         self.steps.get_unchecked(step_id).outputs.is_some()
     }
 
@@ -265,7 +256,7 @@ impl<'hw, 'g> Graph<'hw, 'g> {
     ///
     /// * The specified `address` (step/output IDs) is valid in the graph.
     /// * The associated step is already calculated.
-    unsafe fn get_value_unchecked(&'g self, address: NodeAddress) -> Array<'hw> {
+    unsafe fn get_value_unchecked(&self, address: NodeAddress) -> Array<'hw> {
         self.steps
             .get_unchecked(address.step_id)
             .outputs
@@ -289,7 +280,7 @@ impl<'hw, 'g> Graph<'hw, 'g> {
     /// # Returns
     ///
     /// * Calculated/cached value associated to `target`.
-    pub(crate) fn calculate(&'g mut self, target: &NodeAddress) -> Result<Array<'hw>> {
+    pub(crate) fn calculate(&mut self, target: &NodeAddress) -> Result<Array<'hw>> {
         self.check_address(target)?;
 
         // Actions for the push-down automaton representing the following procedure:
@@ -337,9 +328,9 @@ impl<'hw, 'g> Graph<'hw, 'g> {
                             .inputs
                             .iter()
                             .map(|node| {
-                                self.steps[node.step_id].outputs.as_ref().unwrap()[node.output_id]
+                                &self.steps[node.step_id].outputs.as_ref().unwrap()[node.output_id]
                             })
-                            .collect::<Vec<Array<'hw>>>();
+                            .collect::<Vec<_>>();
 
                         // Perform the operator.
                         self.steps.get_unchecked_mut(step_id).outputs =
@@ -354,123 +345,181 @@ impl<'hw, 'g> Graph<'hw, 'g> {
 }
 
 /// "+" operator for `Node`.
-impl<'hw, 'g> std::ops::Add for Node<'hw, 'g> {
+impl<'hw: 'op, 'op: 'g, 'g> std::ops::Add for Node<'hw, 'op, 'g> {
     type Output = Self;
 
-    fn add(self, other: Self) -> Self::Output {
-        self.graph
-            .add_step(Box::new(operator::Add::new()), vec![self, other])
-            .unwrap()[0]
+    fn add(self, other: Self) -> Self {
+        Self {
+            graph: self.graph,
+            address: self
+                .check_graph(&[&other])
+                .unwrap()
+                .borrow_mut()
+                .add_step(
+                    Box::new(operator::Add::new()),
+                    vec![self.address, other.address],
+                )
+                .unwrap()[0],
+        }
     }
 }
 
 /// "-" operator for `Node`.
-impl<'hw, 'g> std::ops::Sub for Node<'hw, 'g> {
+impl<'hw: 'op, 'op: 'g, 'g> std::ops::Sub for Node<'hw, 'op, 'g> {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self {
-        self.graph
-            .add_step(Box::new(operator::Sub::new()), vec![self, other])
-            .unwrap()[0]
+        Self {
+            graph: self.graph,
+            address: self
+                .check_graph(&[&other])
+                .unwrap()
+                .borrow_mut()
+                .add_step(
+                    Box::new(operator::Sub::new()),
+                    vec![self.address, other.address],
+                )
+                .unwrap()[0],
+        }
     }
 }
 
 /// "*" operator for `Node`.
-impl<'hw, 'g> std::ops::Mul for Node<'hw, 'g> {
+impl<'hw: 'op, 'op: 'g, 'g> std::ops::Mul for Node<'hw, 'op, 'g> {
     type Output = Self;
 
     fn mul(self, other: Self) -> Self {
-        self.graph
-            .add_step(Box::new(operator::Mul::new()), vec![self, other])
-            .unwrap()[0]
+        Self {
+            graph: self.graph,
+            address: self
+                .check_graph(&[&other])
+                .unwrap()
+                .borrow_mut()
+                .add_step(
+                    Box::new(operator::Mul::new()),
+                    vec![self.address, other.address],
+                )
+                .unwrap()[0],
+        }
     }
 }
 
 /// "/" operator for `Node`.
-impl<'hw, 'g> std::ops::Div for Node<'hw, 'g> {
+impl<'hw: 'op, 'op: 'g, 'g> std::ops::Div for Node<'hw, 'op, 'g> {
     type Output = Self;
 
     fn div(self, other: Self) -> Self {
-        self.graph
-            .add_step(Box::new(operator::Div::new()), vec![self, other])
-            .unwrap()[0]
+        Self {
+            graph: self.graph,
+            address: self
+                .check_graph(&[&other])
+                .unwrap()
+                .borrow_mut()
+                .add_step(
+                    Box::new(operator::Div::new()),
+                    vec![self.address, other.address],
+                )
+                .unwrap()[0],
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::graph::*;
+    use crate::hardware::cpu::CpuHardware;
     use crate::make_shape;
+    use std::cell::RefCell;
 
     #[test]
     fn test_steps() {
-        trace(|| {
-            let lhs = Node::from(1.);
-            let rhs = Node::from(2.);
-            let ret = lhs + rhs;
+        let hw = RefCell::new(CpuHardware::new("test"));
+        let g = RefCell::new(Graph::new());
+        let lhs = Node::from_scalar(&hw, &g, 1.);
+        let rhs = Node::from_scalar(&hw, &g, 2.);
+        let ret = lhs + rhs;
 
-            #[rustfmt::skip]
-            (|| {
-                assert_eq!(lhs, Node { _phantom: PhantomData, step_id: 0, output_id: 0 });
-                assert_eq!(rhs, Node { _phantom: PhantomData, step_id: 1, output_id: 0 });
-                assert_eq!(ret, Node { _phantom: PhantomData, step_id: 2, output_id: 0 });
-            })();
+        #[rustfmt::skip]
+        (|| {
+            assert_eq!(lhs, Node::new(&g, NodeAddress { step_id: 0, output_id: 0 }));
+            assert_eq!(rhs, Node::new(&g, NodeAddress { step_id: 1, output_id: 0 }));
+            assert_eq!(ret, Node::new(&g, NodeAddress { step_id: 2, output_id: 0 }));
+        })();
 
-            with_current_graph(|g| {
-                assert_eq!(g.steps.len(), 3);
-                let retval = g.calculate(ret).unwrap();
-                assert_eq!(*retval.shape(), make_shape![]);
-                assert_eq!(retval.into_scalar(), Ok(3.));
-            });
-        });
+        assert_eq!(g.borrow().steps.len(), 3);
+        let retval = g.borrow_mut().calculate(&ret.address).unwrap();
+        assert_eq!(*retval.shape(), make_shape![]);
+        assert_eq!(retval.to_scalar(), Ok(3.));
     }
 
     #[test]
     fn test_add() {
-        let lhs = Node::from(1.);
-        let rhs = Node::from(2.);
+        let hw = RefCell::new(CpuHardware::new("test"));
+        let g = RefCell::new(Graph::new());
+
+        let lhs = Node::from_scalar(&hw, &g, 1.);
+        let rhs = Node::from_scalar(&hw, &g, 2.);
         let ret = lhs + rhs;
-        assert_eq!(f32::from(ret), 3.);
+        assert_eq!(
+            g.borrow_mut().calculate(&ret.address).unwrap().to_scalar(),
+            Ok(3.)
+        );
     }
 
     #[test]
     fn test_sub() {
-        trace(|| {
-            let lhs = Node::from(1.);
-            let rhs = Node::from(2.);
-            let ret = lhs - rhs;
-            assert_eq!(f32::from(ret), -1.);
-        });
+        let hw = RefCell::new(CpuHardware::new("test"));
+        let g = RefCell::new(Graph::new());
+
+        let lhs = Node::from_scalar(&hw, &g, 1.);
+        let rhs = Node::from_scalar(&hw, &g, 2.);
+        let ret = lhs - rhs;
+        assert_eq!(
+            g.borrow_mut().calculate(&ret.address).unwrap().to_scalar(),
+            Ok(-1.)
+        );
     }
 
     #[test]
     fn test_mul() {
-        trace(|| {
-            let lhs = Node::from(1.);
-            let rhs = Node::from(2.);
-            let ret = lhs * rhs;
-            assert_eq!(f32::from(ret), 2.);
-        });
+        let hw = RefCell::new(CpuHardware::new("test"));
+        let g = RefCell::new(Graph::new());
+
+        let lhs = Node::from_scalar(&hw, &g, 1.);
+        let rhs = Node::from_scalar(&hw, &g, 2.);
+        let ret = lhs * rhs;
+        assert_eq!(
+            g.borrow_mut().calculate(&ret.address).unwrap().to_scalar(),
+            Ok(2.)
+        );
     }
 
     #[test]
     fn test_div() {
-        trace(|| {
-            let lhs = Node::from(1.);
-            let rhs = Node::from(2.);
-            let ret = lhs / rhs;
-            assert_eq!(f32::from(ret), 0.5);
-        });
+        let hw = RefCell::new(CpuHardware::new("test"));
+        let g = RefCell::new(Graph::new());
+
+        let lhs = Node::from_scalar(&hw, &g, 1.);
+        let rhs = Node::from_scalar(&hw, &g, 2.);
+        let ret = lhs / rhs;
+        assert_eq!(
+            g.borrow_mut().calculate(&ret.address).unwrap().to_scalar(),
+            Ok(0.5)
+        );
     }
 
     #[test]
     fn test_multiple_computation() {
-        trace(|| {
-            let a = Node::from(1.);
-            let b = Node::from(2.);
-            let c = Node::from(3.);
-            let y = a + b * c;
-            assert_eq!(f32::from(y), 7.);
-        });
+        let hw = RefCell::new(CpuHardware::new("test"));
+        let g = RefCell::new(Graph::new());
+
+        let a = Node::from_scalar(&hw, &g, 1.);
+        let b = Node::from_scalar(&hw, &g, 2.);
+        let c = Node::from_scalar(&hw, &g, 3.);
+        let y = a + b * c;
+        assert_eq!(
+            g.borrow_mut().calculate(&y.address).unwrap().to_scalar(),
+            Ok(7.)
+        );
     }
 }

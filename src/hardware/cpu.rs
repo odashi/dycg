@@ -177,13 +177,9 @@ unsafe impl Hardware for CpuHardware {
 mod tests {
     use crate::buffer::Buffer;
     use crate::hardware::cpu::CpuHardware;
-    use crate::hardware::{Hardware, HardwareMutex};
+    use crate::hardware::Hardware;
+    use std::cell::RefCell;
     use std::mem::size_of;
-
-    /// Helper function to create mutex-guarded CpuHardwre.
-    fn make_hardware() -> HardwareMutex {
-        HardwareMutex::new(Box::new(CpuHardware::new("test")))
-    }
 
     #[test]
     fn test_name() {
@@ -192,7 +188,7 @@ mod tests {
 
     #[test]
     fn test_allocate_memory() {
-        let hw = make_hardware();
+        let hw = RefCell::new(CpuHardware::new("test"));
 
         unsafe {
             let mut buf = Buffer::raw(&hw, 4);
@@ -213,18 +209,16 @@ mod tests {
     #[test]
     #[should_panic(expected = "Detected memory leak: 1 memory blocks have not been released.")]
     fn test_memory_leak() {
-        let hw = make_hardware();
+        let mut hw = CpuHardware::new("test");
         unsafe {
-            hw.lock().unwrap().allocate_memory(1);
+            hw.allocate_memory(1);
         }
     }
 
     #[test]
     fn test_zero_memory_leak() {
-        let hw = make_hardware();
+        let mut hw = CpuHardware::new("test");
         unsafe {
-            let mut hw = hw.lock().unwrap();
-
             // The hardware don't care about zero-length memories.
             hw.allocate_memory(0);
             hw.allocate_memory(0);
@@ -235,9 +229,8 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_deallocate_memory_twice() {
-        let hw = make_hardware();
+        let mut hw = CpuHardware::new("test");
         unsafe {
-            let mut hw = hw.lock().unwrap();
             let ptr = hw.allocate_memory(1);
             hw.deallocate_memory(ptr, 1);
             hw.deallocate_memory(ptr, 1);
@@ -246,12 +239,11 @@ mod tests {
 
     #[test]
     fn test_copy_host_to_hardware() {
-        let hw = make_hardware();
+        let hw = RefCell::new(CpuHardware::new("test"));
         unsafe {
             let mut dest = Buffer::raw(&hw, 4);
             let src: Vec<u8> = vec![1, 2, 3, 4];
-            hw.lock()
-                .unwrap()
+            hw.borrow_mut()
                 .copy_host_to_hardware(src.as_ptr(), dest.as_mut_handle(), 4);
             assert_eq!(*(dest.as_handle() as *const [u8; 4]), [1, 2, 3, 4]);
         }
@@ -259,13 +251,12 @@ mod tests {
 
     #[test]
     fn test_copy_hardware_to_host() {
-        let hw = make_hardware();
+        let hw = RefCell::new(CpuHardware::new("test"));
         unsafe {
             let src = Buffer::raw(&hw, 4);
             let mut dest: Vec<u8> = vec![0; 4];
             *(src.as_handle() as *mut [u8; 4]) = [1, 2, 3, 4];
-            hw.lock()
-                .unwrap()
+            hw.borrow_mut()
                 .copy_hardware_to_host(src.as_handle(), dest.as_mut_ptr(), 4);
             assert_eq!(dest, vec![1, 2, 3, 4]);
         }
@@ -273,13 +264,12 @@ mod tests {
 
     #[test]
     fn test_copy_hardware_to_hardware() {
-        let hw = make_hardware();
+        let hw = RefCell::new(CpuHardware::new("test"));
         unsafe {
             let src = Buffer::raw(&hw, 4);
             let mut dest = Buffer::raw(&hw, 4);
             *(src.as_handle() as *mut [u8; 4]) = [1, 2, 3, 4];
-            hw.lock()
-                .unwrap()
+            hw.borrow_mut()
                 .copy_hardware_to_host(src.as_handle(), dest.as_mut_handle(), 4);
             assert_eq!(*(dest.as_handle() as *const [u8; 4]), [1, 2, 3, 4]);
         }
@@ -287,17 +277,17 @@ mod tests {
 
     #[test]
     fn test_fill_f32() {
-        let hw = make_hardware();
+        let hw = RefCell::new(CpuHardware::new("test"));
         unsafe {
             let mut dest = Buffer::raw(&hw, 4 * size_of::<f32>());
-            hw.lock().unwrap().fill_f32(dest.as_mut_handle(), 42., 4);
+            hw.borrow_mut().fill_f32(dest.as_mut_handle(), 42., 4);
             assert_eq!(*(dest.as_handle() as *const [f32; 4]), [42.; 4]);
         }
     }
 
     #[test]
     fn test_elementwise_add_f32() {
-        let hw = make_hardware();
+        let hw = RefCell::new(CpuHardware::new("test"));
         let size = 4 * size_of::<f32>();
         unsafe {
             let mut lhs = Buffer::raw(&hw, size);
@@ -305,7 +295,7 @@ mod tests {
             let mut dest = Buffer::raw(&hw, size);
             *(lhs.as_mut_handle() as *mut [f32; 4]) = [1., 2., 3., 4.];
             *(rhs.as_mut_handle() as *mut [f32; 4]) = [5., 6., 7., 8.];
-            hw.lock().unwrap().elementwise_add_f32(
+            hw.borrow_mut().elementwise_add_f32(
                 lhs.as_handle(),
                 rhs.as_handle(),
                 dest.as_mut_handle(),
@@ -320,7 +310,7 @@ mod tests {
 
     #[test]
     fn test_elementwise_sub_f32() {
-        let hw = make_hardware();
+        let hw = RefCell::new(CpuHardware::new("test"));
         let size = 4 * size_of::<f32>();
         unsafe {
             let mut lhs = Buffer::raw(&hw, size);
@@ -328,7 +318,7 @@ mod tests {
             let mut dest = Buffer::raw(&hw, size);
             *(lhs.as_mut_handle() as *mut [f32; 4]) = [9., 8., 7., 6.];
             *(rhs.as_mut_handle() as *mut [f32; 4]) = [1., 2., 3., 4.];
-            hw.lock().unwrap().elementwise_sub_f32(
+            hw.borrow_mut().elementwise_sub_f32(
                 lhs.as_handle(),
                 rhs.as_handle(),
                 dest.as_mut_handle(),
@@ -340,7 +330,7 @@ mod tests {
 
     #[test]
     fn test_elementwise_mul_f32() {
-        let hw = make_hardware();
+        let hw = RefCell::new(CpuHardware::new("test"));
         let size = 4 * size_of::<f32>();
         unsafe {
             let mut lhs = Buffer::raw(&hw, size);
@@ -348,7 +338,7 @@ mod tests {
             let mut dest = Buffer::raw(&hw, size);
             *(lhs.as_mut_handle() as *mut [f32; 4]) = [1., 2., 3., 4.];
             *(rhs.as_mut_handle() as *mut [f32; 4]) = [5., 6., 7., 8.];
-            hw.lock().unwrap().elementwise_mul_f32(
+            hw.borrow_mut().elementwise_mul_f32(
                 lhs.as_handle(),
                 rhs.as_handle(),
                 dest.as_mut_handle(),
@@ -360,7 +350,7 @@ mod tests {
 
     #[test]
     fn test_elementwise_div_f32() {
-        let hw = make_hardware();
+        let hw = RefCell::new(CpuHardware::new("test"));
         let size = 4 * size_of::<f32>();
         unsafe {
             let mut lhs = Buffer::raw(&hw, size);
@@ -368,7 +358,7 @@ mod tests {
             let mut dest = Buffer::raw(&hw, size);
             *(lhs.as_mut_handle() as *mut [f32; 4]) = [1., 2., 3., 4.];
             *(rhs.as_mut_handle() as *mut [f32; 4]) = [4., 2., 1., 0.5];
-            hw.lock().unwrap().elementwise_div_f32(
+            hw.borrow_mut().elementwise_div_f32(
                 lhs.as_handle(),
                 rhs.as_handle(),
                 dest.as_mut_handle(),

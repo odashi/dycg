@@ -1,6 +1,3 @@
-use std::ptr;
-use std::sync::{LockResult, Mutex, MutexGuard};
-
 /// Trait for computing backends.
 ///
 /// This trait provides the set of the lowest instructions that each computation backend are
@@ -9,7 +6,7 @@ use std::sync::{LockResult, Mutex, MutexGuard};
 /// As the real hardware lives longer than the programs, structs implementing this trait may be
 /// installed as a static object.
 /// They require implicit/explicit initialization procedure during the program startups.
-pub(crate) unsafe trait Hardware: Send {
+pub unsafe trait Hardware {
     /// Returns the name of this hardware.
     ///
     /// # Returns
@@ -192,28 +189,3 @@ pub(crate) unsafe trait Hardware: Send {
         num_elements: usize,
     );
 }
-
-/// Mutex object to wrap hardware.
-pub struct HardwareMutex {
-    mutex: Mutex<Box<dyn Hardware>>,
-}
-
-impl HardwareMutex {
-    pub(crate) fn new(hardware: Box<dyn Hardware>) -> Self {
-        Self {
-            mutex: Mutex::new(hardware),
-        }
-    }
-
-    pub(crate) fn lock(&self) -> LockResult<MutexGuard<Box<dyn Hardware>>> {
-        self.mutex.lock()
-    }
-}
-
-impl PartialEq for HardwareMutex {
-    fn eq(&self, other: &Self) -> bool {
-        ptr::eq(self, other)
-    }
-}
-
-impl Eq for HardwareMutex {}

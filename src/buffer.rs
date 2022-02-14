@@ -1,6 +1,7 @@
 use crate::error::Error;
-use crate::hardware::HardwareMutex;
+use crate::hardware::Hardware;
 use crate::result::Result;
+use std::cell::RefCell;
 use std::ptr;
 
 /// RAII object for hardware-specific memory.
@@ -11,7 +12,7 @@ use std::ptr;
 /// This object can only be alive during the lifetime of the specified hardware.
 pub(crate) struct Buffer<'hw> {
     /// Reference to the hardware that `pointer` manages.
-    hardware: &'hw HardwareMutex,
+    hardware: &'hw RefCell<dyn Hardware>,
 
     /// Size in bytes of the storage.
     size: usize,
@@ -37,12 +38,11 @@ impl<'hw> Buffer<'hw> {
     /// This function does not initialize the data on the allocated memory, and users are
     /// responsible to initialize the memory immediately by themselves.
     /// Using this object without explicit initialization causes undefined behavior.
-    pub(crate) unsafe fn raw(hardware: &'hw HardwareMutex, size: usize) -> Self {
-        // Panics immediately when mutex poisoning happened.
+    pub(crate) unsafe fn raw(hardware: &'hw RefCell<dyn Hardware>, size: usize) -> Self {
         Self {
             hardware,
             size,
-            handle: hardware.lock().unwrap().allocate_memory(size),
+            handle: hardware.borrow_mut().allocate_memory(size),
         }
     }
 
@@ -62,7 +62,7 @@ impl<'hw> Buffer<'hw> {
     /// This function does not initialize the data on the allocated memory, and users are
     /// responsible to initialize the memory immediately by themselves.
     /// Using this object without explicit initialization causes undefined behavior.
-    pub(crate) unsafe fn raw_colocated(other: &Buffer<'hw>, size: usize) -> Self {
+    pub(crate) unsafe fn raw_colocated(other: &Self, size: usize) -> Self {
         Self::raw(other.hardware, size)
     }
 
@@ -71,7 +71,7 @@ impl<'hw> Buffer<'hw> {
     /// # Returns
     ///
     /// A Reference to the wrapped `Hardware` object.
-    pub(crate) fn hardware(&self) -> &'hw HardwareMutex {
+    pub(crate) fn hardware(&self) -> &'hw RefCell<dyn Hardware> {
         self.hardware
     }
 
@@ -112,7 +112,7 @@ impl<'hw> Buffer<'hw> {
     ///
     /// * `true` - The both buffers are colocated on the same hardware.
     /// * `false` - Otherwise.
-    pub(crate) fn is_colocated(&self, other: &Buffer) -> bool {
+    pub(crate) fn is_colocated(&self, other: &Self) -> bool {
         ptr::eq(self.hardware, other.hardware)
     }
 
@@ -126,7 +126,7 @@ impl<'hw> Buffer<'hw> {
     ///
     /// * `Ok(())` - The both buffers are colocated on the same hardware.
     /// * `Err(Error)` - Otherwise.
-    pub(crate) fn check_colocated(&self, other: &Buffer) -> Result<()> {
+    pub(crate) fn check_colocated(&self, other: &Self) -> Result<()> {
         self.is_colocated(other)
             .then(|| ())
             .ok_or(Error::InvalidHardware((|| {
@@ -141,10 +141,8 @@ impl<'hw> Buffer<'hw> {
 impl<'hw> Drop for Buffer<'hw> {
     fn drop(&mut self) {
         unsafe {
-            // Panics immediately when mutex poisoning happened.
             self.hardware
-                .lock()
-                .unwrap()
+                .borrow_mut()
                 .deallocate_memory(self.handle, self.size);
         }
     }
@@ -153,18 +151,14 @@ impl<'hw> Drop for Buffer<'hw> {
 #[cfg(test)]
 mod tests {
     use crate::buffer::Buffer;
-    use crate::hardware::{cpu::CpuHardware, HardwareMutex};
+    use crate::hardware::cpu::CpuHardware;
+    use std::cell::RefCell;
     use std::ptr;
-
-    /// Helper function to create mutex-guarded CpuHardwre.
-    fn make_hardware() -> HardwareMutex {
-        HardwareMutex::new(Box::new(CpuHardware::new("test")))
-    }
 
     #[test]
     fn test_raw() {
-        let hw1 = make_hardware();
-        let hw2 = make_hardware();
+        let hw1 = RefCell::new(CpuHardware::new("hw1"));
+        let hw2 = RefCell::new(CpuHardware::new("hw2"));
         let nullptr = ptr::null::<u8>();
         unsafe {
             let buf1 = Buffer::raw(&hw1, 1);
@@ -189,7 +183,7 @@ mod tests {
 
     #[test]
     fn test_raw_zero() {
-        let hw = make_hardware();
+        let hw = RefCell::new(CpuHardware::new("hw"));
         unsafe {
             let buf = Buffer::raw(&hw, 0);
             assert!(ptr::eq(buf.hardware, &hw));
@@ -200,7 +194,7 @@ mod tests {
 
     #[test]
     fn test_raw_colocated() {
-        let hw = make_hardware();
+        let hw = RefCell::new(CpuHardware::new("hw"));
         unsafe {
             let buf1 = Buffer::raw(&hw, 1);
             let buf2 = Buffer::raw_colocated(&buf1, 2);
@@ -212,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_hardware() {
-        let hw = make_hardware();
+        let hw = RefCell::new(CpuHardware::new("hw"));
         unsafe {
             let buf = Buffer::raw(&hw, 1);
             assert!(ptr::eq(buf.hardware(), &hw));
@@ -221,7 +215,7 @@ mod tests {
 
     #[test]
     fn test_size() {
-        let hw = make_hardware();
+        let hw = RefCell::new(CpuHardware::new("hw"));
         unsafe {
             let buf = Buffer::raw(&hw, 123);
             assert_eq!(buf.size(), 123);
@@ -230,7 +224,7 @@ mod tests {
 
     #[test]
     fn test_as_handle() {
-        let hw = make_hardware();
+        let hw = RefCell::new(CpuHardware::new("hw"));
         unsafe {
             let buf = Buffer::raw(&hw, 1);
             assert!(ptr::eq(buf.as_handle(), buf.handle));
@@ -239,7 +233,7 @@ mod tests {
 
     #[test]
     fn test_as_mut_handle() {
-        let hw = make_hardware();
+        let hw = RefCell::new(CpuHardware::new("hw"));
         unsafe {
             let mut buf = Buffer::raw(&hw, 1);
             assert!(ptr::eq(buf.as_mut_handle(), buf.handle));
@@ -248,8 +242,8 @@ mod tests {
 
     #[test]
     fn test_is_colocated() {
-        let hw1 = make_hardware();
-        let hw2 = make_hardware();
+        let hw1 = RefCell::new(CpuHardware::new("hw1"));
+        let hw2 = RefCell::new(CpuHardware::new("hw2"));
         unsafe {
             let buf1 = Buffer::raw(&hw1, 1);
             let buf2 = Buffer::raw(&hw1, 1);
@@ -268,8 +262,8 @@ mod tests {
 
     #[test]
     fn test_check_colocated() {
-        let hw1 = make_hardware();
-        let hw2 = make_hardware();
+        let hw1 = RefCell::new(CpuHardware::new("hw1"));
+        let hw2 = RefCell::new(CpuHardware::new("hw2"));
         unsafe {
             let buf1 = Buffer::raw(&hw1, 1);
             let buf2 = Buffer::raw(&hw1, 1);

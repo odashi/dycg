@@ -14,5 +14,3 @@ A dynamic computation graph library.
 """
 
 [dependencies]
-once_cell = "1.9.0"
-scoped-tls-hkt = "0.1.2"
