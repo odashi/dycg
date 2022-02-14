@@ -28,7 +28,7 @@ impl CpuHardware {
     /// # Returns
     ///
     /// A new `CpuHardwareHardware` object.
-    pub(crate) fn new(name: &str) -> Self {
+    pub fn new(name: &str) -> Self {
         Self {
             name: String::from(name),
             supplied: HashSet::new(),

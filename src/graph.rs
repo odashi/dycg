@@ -43,9 +43,9 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
         graph: &'g RefCell<Graph<'hw, 'op>>,
         value: f32,
     ) -> Self {
-        Self {
+        Self::new(
             graph,
-            address: graph
+            graph
                 .borrow_mut()
                 .add_step(
                     Box::new(operator::Constant::new(Array::new_scalar(hardware, value))),
@@ -54,7 +54,7 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
                 .unwrap()
                 .pop()
                 .unwrap(),
-        }
+        )
     }
 
     pub fn to_scalar(&self) -> f32 {
@@ -137,7 +137,7 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
     /// # Returns
     ///
     /// A new `Graph` object containing zero steps.
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self { steps: vec![] }
     }
 

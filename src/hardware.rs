@@ -1,4 +1,4 @@
 mod base;
-pub(crate) mod cpu;
+pub mod cpu;
 
 pub use base::Hardware;
