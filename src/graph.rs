@@ -30,13 +30,13 @@ impl fmt::Display for NodeAddress {
 /// Step owns an Operator which consumes several values produced by preceding steps.
 pub(crate) struct Step<'hw: 'op, 'op> {
     /// Operator owned by this step.
-    operator: Box<dyn Operator<'hw> + 'op>,
+    pub(crate) operator: Box<dyn Operator<'hw> + 'op>,
 
     /// Input nodes.
-    inputs: Vec<NodeAddress>,
+    pub(crate) inputs: Vec<NodeAddress>,
 
     /// Output values.
-    outputs: Option<Vec<Array<'hw>>>,
+    pub(crate) outputs: Option<Vec<Array<'hw>>>,
 }
 
 impl<'hw: 'op, 'op> Step<'hw, 'op> {
@@ -77,6 +77,24 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
     /// The number of registered operations.
     pub fn num_steps(&self) -> usize {
         self.steps.len()
+    }
+
+    /// Obtains a `Step` specified by a step ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `step_id` - ID of the step to be obtained. The value must be smaller than
+    ///   the return value of `num_steps()`.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the specified `Step` in this graph.
+    ///
+    /// # Panics
+    ///
+    /// The `step_id` is invalid for this graph.
+    pub(crate) fn get_step(&self, step_id: usize) -> &Step<'hw, 'op> {
+        &self.steps[step_id]
     }
 
     /// Checks if the `NodeAddress` is valid for this Graph.

@@ -183,14 +183,18 @@ mod tests {
         let rhs = Node::from_scalar(&hw, &g, 2.);
         let ret = lhs + rhs;
 
-        #[rustfmt::skip]
-        (|| {
-            assert_eq!(lhs, Node::new(&g, NodeAddress::new(0, 0)));
-            assert_eq!(rhs, Node::new(&g, NodeAddress::new(1, 0)));
-            assert_eq!(ret, Node::new(&g, NodeAddress::new(2, 0)));
-        })();
+        {
+            let g = g.borrow();
+            assert_eq!(g.num_steps(), 3);
+            assert_eq!(g.get_step(0).operator.name(), "Constant");
+            assert_eq!(g.get_step(1).operator.name(), "Constant");
+            assert_eq!(g.get_step(2).operator.name(), "Add");
+        }
 
-        assert_eq!(g.borrow().num_steps(), 3);
+        assert_eq!(lhs, Node::new(&g, NodeAddress::new(0, 0)));
+        assert_eq!(rhs, Node::new(&g, NodeAddress::new(1, 0)));
+        assert_eq!(ret, Node::new(&g, NodeAddress::new(2, 0)));
+
         let retval = ret.calculate().unwrap();
         assert_eq!(*retval.shape(), make_shape![]);
         assert_eq!(retval.to_scalar(), Ok(3.));
