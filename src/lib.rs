@@ -1,8 +1,9 @@
 mod array;
 mod buffer;
 mod error;
-pub mod graph;
+mod graph;
 pub mod hardware;
+pub mod node;
 mod operator;
 mod result;
 pub mod shape;
