@@ -3,12 +3,13 @@ use std::fmt;
 /// Error type for this crate.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Error {
-    OutOfRange(String),
     InvalidGraph(String),
     InvalidHardware(String),
     InvalidNode(String),
     InvalidLength(String),
     InvalidShape(String),
+    OutOfRange(String),
+    NotSupported(String),
 }
 
 impl fmt::Display for Error {
