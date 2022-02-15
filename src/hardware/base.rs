@@ -7,13 +7,6 @@
 /// installed as a static object.
 /// They require implicit/explicit initialization procedure during the program startups.
 pub unsafe trait Hardware {
-    /// Returns the name of this hardware.
-    ///
-    /// # Returns
-    ///
-    /// The name of this hardware.
-    fn name(&self) -> &str;
-
     /// Allocates a new memory with at least the requested size and returns its handle.
     ///
     /// # Arguments

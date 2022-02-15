@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_constant_op() {
-        let hw = RefCell::new(CpuHardware::new("test"));
+        let hw = RefCell::new(CpuHardware::new());
         let op = Constant::new(Array::new_scalar(&hw, 123.));
         assert_eq!(op.name(), "Constant");
         assert_eq!(op.input_size(), 0);
@@ -92,7 +92,7 @@ mod tests {
 
     #[test]
     pub fn test_add_op() {
-        let hw = RefCell::new(CpuHardware::new("test"));
+        let hw = RefCell::new(CpuHardware::new());
         let op = Add::new();
         assert_eq!(op.name(), "Add");
         assert_eq!(op.input_size(), 2);

@@ -437,7 +437,7 @@ mod tests {
 
     #[test]
     fn test_steps() {
-        let hw = RefCell::new(CpuHardware::new("test"));
+        let hw = RefCell::new(CpuHardware::new());
         let g = RefCell::new(Graph::new());
         let lhs = Node::from_scalar(&hw, &g, 1.);
         let rhs = Node::from_scalar(&hw, &g, 2.);
@@ -458,7 +458,7 @@ mod tests {
 
     #[test]
     fn test_add() {
-        let hw = RefCell::new(CpuHardware::new("test"));
+        let hw = RefCell::new(CpuHardware::new());
         let g = RefCell::new(Graph::new());
 
         let lhs = Node::from_scalar(&hw, &g, 1.);
@@ -469,7 +469,7 @@ mod tests {
 
     #[test]
     fn test_sub() {
-        let hw = RefCell::new(CpuHardware::new("test"));
+        let hw = RefCell::new(CpuHardware::new());
         let g = RefCell::new(Graph::new());
 
         let lhs = Node::from_scalar(&hw, &g, 1.);
@@ -480,7 +480,7 @@ mod tests {
 
     #[test]
     fn test_mul() {
-        let hw = RefCell::new(CpuHardware::new("test"));
+        let hw = RefCell::new(CpuHardware::new());
         let g = RefCell::new(Graph::new());
 
         let lhs = Node::from_scalar(&hw, &g, 1.);
@@ -491,7 +491,7 @@ mod tests {
 
     #[test]
     fn test_div() {
-        let hw = RefCell::new(CpuHardware::new("test"));
+        let hw = RefCell::new(CpuHardware::new());
         let g = RefCell::new(Graph::new());
 
         let lhs = Node::from_scalar(&hw, &g, 1.);
@@ -502,7 +502,7 @@ mod tests {
 
     #[test]
     fn test_multiple_computation() {
-        let hw = RefCell::new(CpuHardware::new("test"));
+        let hw = RefCell::new(CpuHardware::new());
         let g = RefCell::new(Graph::new());
 
         let a = Node::from_scalar(&hw, &g, 1.);

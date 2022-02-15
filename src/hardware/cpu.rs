@@ -11,9 +11,6 @@ const DEFAULT_MEMORY_ALIGNMENT: usize = 8;
 /// Memories on this hardware are identical with the usual host memory and are allocated through
 /// `GlobalAlloc`.
 pub struct CpuHardware {
-    /// Name of this hardware.
-    name: String,
-
     /// Registry of supplied pointer and associated memory size.
     supplied: HashSet<(usize, usize)>,
 }
@@ -21,16 +18,11 @@ pub struct CpuHardware {
 impl CpuHardware {
     /// Creates a new `CpuHardwareHardware` object.
     ///
-    /// # Arguments
-    ///
-    /// * `name` - Name of this hardware.
-    ///
     /// # Returns
     ///
     /// A new `CpuHardwareHardware` object.
-    pub fn new(name: &str) -> Self {
+    pub fn new() -> Self {
         Self {
-            name: String::from(name),
             supplied: HashSet::new(),
         }
     }
@@ -58,10 +50,6 @@ impl Drop for CpuHardware {
 }
 
 unsafe impl Hardware for CpuHardware {
-    fn name(&self) -> &str {
-        &self.name
-    }
-
     unsafe fn allocate_memory(&mut self, size: usize) -> *mut u8 {
         let layout = alloc::Layout::from_size_align_unchecked(size, DEFAULT_MEMORY_ALIGNMENT);
         let handle = alloc::alloc(layout);
@@ -182,13 +170,8 @@ mod tests {
     use std::mem::size_of;
 
     #[test]
-    fn test_name() {
-        assert_eq!(CpuHardware::new("test").name(), "test");
-    }
-
-    #[test]
     fn test_allocate_memory() {
-        let hw = RefCell::new(CpuHardware::new("test"));
+        let hw = RefCell::new(CpuHardware::new());
 
         unsafe {
             let mut buf = Buffer::raw(&hw, 4);
@@ -209,7 +192,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Detected memory leak: 1 memory blocks have not been released.")]
     fn test_memory_leak() {
-        let mut hw = CpuHardware::new("test");
+        let mut hw = CpuHardware::new();
         unsafe {
             hw.allocate_memory(1);
         }
@@ -217,7 +200,7 @@ mod tests {
 
     #[test]
     fn test_zero_memory_leak() {
-        let mut hw = CpuHardware::new("test");
+        let mut hw = CpuHardware::new();
         unsafe {
             // The hardware don't care about zero-length memories.
             hw.allocate_memory(0);
@@ -229,7 +212,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_deallocate_memory_twice() {
-        let mut hw = CpuHardware::new("test");
+        let mut hw = CpuHardware::new();
         unsafe {
             let ptr = hw.allocate_memory(1);
             hw.deallocate_memory(ptr, 1);
@@ -239,7 +222,7 @@ mod tests {
 
     #[test]
     fn test_copy_host_to_hardware() {
-        let hw = RefCell::new(CpuHardware::new("test"));
+        let hw = RefCell::new(CpuHardware::new());
         unsafe {
             let mut dest = Buffer::raw(&hw, 4);
             let src: Vec<u8> = vec![1, 2, 3, 4];
@@ -251,7 +234,7 @@ mod tests {
 
     #[test]
     fn test_copy_hardware_to_host() {
-        let hw = RefCell::new(CpuHardware::new("test"));
+        let hw = RefCell::new(CpuHardware::new());
         unsafe {
             let src = Buffer::raw(&hw, 4);
             let mut dest: Vec<u8> = vec![0; 4];
@@ -264,7 +247,7 @@ mod tests {
 
     #[test]
     fn test_copy_hardware_to_hardware() {
-        let hw = RefCell::new(CpuHardware::new("test"));
+        let hw = RefCell::new(CpuHardware::new());
         unsafe {
             let src = Buffer::raw(&hw, 4);
             let mut dest = Buffer::raw(&hw, 4);
@@ -277,7 +260,7 @@ mod tests {
 
     #[test]
     fn test_fill_f32() {
-        let hw = RefCell::new(CpuHardware::new("test"));
+        let hw = RefCell::new(CpuHardware::new());
         unsafe {
             let mut dest = Buffer::raw(&hw, 4 * size_of::<f32>());
             hw.borrow_mut().fill_f32(dest.as_mut_handle(), 42., 4);
@@ -287,7 +270,7 @@ mod tests {
 
     #[test]
     fn test_elementwise_add_f32() {
-        let hw = RefCell::new(CpuHardware::new("test"));
+        let hw = RefCell::new(CpuHardware::new());
         let size = 4 * size_of::<f32>();
         unsafe {
             let mut lhs = Buffer::raw(&hw, size);
@@ -310,7 +293,7 @@ mod tests {
 
     #[test]
     fn test_elementwise_sub_f32() {
-        let hw = RefCell::new(CpuHardware::new("test"));
+        let hw = RefCell::new(CpuHardware::new());
         let size = 4 * size_of::<f32>();
         unsafe {
             let mut lhs = Buffer::raw(&hw, size);
@@ -330,7 +313,7 @@ mod tests {
 
     #[test]
     fn test_elementwise_mul_f32() {
-        let hw = RefCell::new(CpuHardware::new("test"));
+        let hw = RefCell::new(CpuHardware::new());
         let size = 4 * size_of::<f32>();
         unsafe {
             let mut lhs = Buffer::raw(&hw, size);
@@ -350,7 +333,7 @@ mod tests {
 
     #[test]
     fn test_elementwise_div_f32() {
-        let hw = RefCell::new(CpuHardware::new("test"));
+        let hw = RefCell::new(CpuHardware::new());
         let size = 4 * size_of::<f32>();
         unsafe {
             let mut lhs = Buffer::raw(&hw, size);

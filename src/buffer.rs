@@ -157,8 +157,8 @@ mod tests {
 
     #[test]
     fn test_raw() {
-        let hw1 = RefCell::new(CpuHardware::new("hw1"));
-        let hw2 = RefCell::new(CpuHardware::new("hw2"));
+        let hw1 = RefCell::new(CpuHardware::new());
+        let hw2 = RefCell::new(CpuHardware::new());
         let nullptr = ptr::null::<u8>();
         unsafe {
             let buf1 = Buffer::raw(&hw1, 1);
@@ -183,7 +183,7 @@ mod tests {
 
     #[test]
     fn test_raw_zero() {
-        let hw = RefCell::new(CpuHardware::new("hw"));
+        let hw = RefCell::new(CpuHardware::new());
         unsafe {
             let buf = Buffer::raw(&hw, 0);
             assert!(ptr::eq(buf.hardware, &hw));
@@ -194,7 +194,7 @@ mod tests {
 
     #[test]
     fn test_raw_colocated() {
-        let hw = RefCell::new(CpuHardware::new("hw"));
+        let hw = RefCell::new(CpuHardware::new());
         unsafe {
             let buf1 = Buffer::raw(&hw, 1);
             let buf2 = Buffer::raw_colocated(&buf1, 2);
@@ -206,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_hardware() {
-        let hw = RefCell::new(CpuHardware::new("hw"));
+        let hw = RefCell::new(CpuHardware::new());
         unsafe {
             let buf = Buffer::raw(&hw, 1);
             assert!(ptr::eq(buf.hardware(), &hw));
@@ -215,7 +215,7 @@ mod tests {
 
     #[test]
     fn test_size() {
-        let hw = RefCell::new(CpuHardware::new("hw"));
+        let hw = RefCell::new(CpuHardware::new());
         unsafe {
             let buf = Buffer::raw(&hw, 123);
             assert_eq!(buf.size(), 123);
@@ -224,7 +224,7 @@ mod tests {
 
     #[test]
     fn test_as_handle() {
-        let hw = RefCell::new(CpuHardware::new("hw"));
+        let hw = RefCell::new(CpuHardware::new());
         unsafe {
             let buf = Buffer::raw(&hw, 1);
             assert!(ptr::eq(buf.as_handle(), buf.handle));
@@ -233,7 +233,7 @@ mod tests {
 
     #[test]
     fn test_as_mut_handle() {
-        let hw = RefCell::new(CpuHardware::new("hw"));
+        let hw = RefCell::new(CpuHardware::new());
         unsafe {
             let mut buf = Buffer::raw(&hw, 1);
             assert!(ptr::eq(buf.as_mut_handle(), buf.handle));
@@ -242,8 +242,8 @@ mod tests {
 
     #[test]
     fn test_is_colocated() {
-        let hw1 = RefCell::new(CpuHardware::new("hw1"));
-        let hw2 = RefCell::new(CpuHardware::new("hw2"));
+        let hw1 = RefCell::new(CpuHardware::new());
+        let hw2 = RefCell::new(CpuHardware::new());
         unsafe {
             let buf1 = Buffer::raw(&hw1, 1);
             let buf2 = Buffer::raw(&hw1, 1);
@@ -262,8 +262,8 @@ mod tests {
 
     #[test]
     fn test_check_colocated() {
-        let hw1 = RefCell::new(CpuHardware::new("hw1"));
-        let hw2 = RefCell::new(CpuHardware::new("hw2"));
+        let hw1 = RefCell::new(CpuHardware::new());
+        let hw2 = RefCell::new(CpuHardware::new());
         unsafe {
             let buf1 = Buffer::raw(&hw1, 1);
             let buf2 = Buffer::raw(&hw1, 1);
