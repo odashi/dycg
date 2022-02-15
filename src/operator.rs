@@ -11,7 +11,9 @@ pub(crate) trait Operator<'hw> {
     fn perform(&self, inputs: &[&Array<'hw>]) -> Result<Vec<Array<'hw>>>;
     fn gradient<'op, 'g>(
         &self,
-        _outputs: &[&Node<'hw, 'op, 'g>],
+        _x: &[&Node<'hw, 'op, 'g>],
+        _y: &[&Node<'hw, 'op, 'g>],
+        _gy: &[&Node<'hw, 'op, 'g>],
     ) -> Result<Vec<Node<'hw, 'op, 'g>>> {
         Err(Error::NotSupported(format!(
             "No gradient definition for {}",
@@ -72,37 +74,144 @@ impl<'hw> Operator<'hw> for Neg {
     fn perform(&self, inputs: &[&Array<'hw>]) -> Result<Vec<Array<'hw>>> {
         Ok(vec![inputs[0].elementwise_neg_f32()?])
     }
+
+    fn gradient<'op, 'g>(
+        &self,
+        _x: &[&Node<'hw, 'op, 'g>],
+        _y: &[&Node<'hw, 'op, 'g>],
+        gy: &[&Node<'hw, 'op, 'g>],
+    ) -> Result<Vec<Node<'hw, 'op, 'g>>> {
+        Ok(vec![-*gy[0]])
+    }
 }
 
-macro_rules! define_elementwise_binary_op {
-    ( $name:ident, $fn:ident ) => {
-        pub(crate) struct $name;
-        impl $name {
-            pub(crate) fn new() -> Self {
-                Self {}
-            }
-        }
-        impl<'hw> Operator<'hw> for $name {
-            fn name(&self) -> String {
-                String::from(stringify!($name))
-            }
-            fn input_size(&self) -> usize {
-                2
-            }
-            fn output_size(&self) -> usize {
-                1
-            }
-            fn perform(&self, inputs: &[&Array<'hw>]) -> Result<Vec<Array<'hw>>> {
-                Ok(vec![inputs[0].$fn(inputs[1])?])
-            }
-        }
-    };
+pub(crate) struct Add;
+
+impl Add {
+    pub(crate) fn new() -> Self {
+        Self {}
+    }
 }
 
-define_elementwise_binary_op!(Add, elementwise_add_f32);
-define_elementwise_binary_op!(Sub, elementwise_sub_f32);
-define_elementwise_binary_op!(Mul, elementwise_mul_f32);
-define_elementwise_binary_op!(Div, elementwise_div_f32);
+impl<'hw> Operator<'hw> for Add {
+    fn name(&self) -> String {
+        String::from("Add")
+    }
+    fn input_size(&self) -> usize {
+        2
+    }
+    fn output_size(&self) -> usize {
+        1
+    }
+    fn perform(&self, inputs: &[&Array<'hw>]) -> Result<Vec<Array<'hw>>> {
+        Ok(vec![inputs[0].elementwise_add_f32(inputs[1])?])
+    }
+
+    fn gradient<'op, 'g>(
+        &self,
+        _x: &[&Node<'hw, 'op, 'g>],
+        _y: &[&Node<'hw, 'op, 'g>],
+        gy: &[&Node<'hw, 'op, 'g>],
+    ) -> Result<Vec<Node<'hw, 'op, 'g>>> {
+        Ok(vec![*gy[0], *gy[0]])
+    }
+}
+
+pub(crate) struct Sub;
+
+impl Sub {
+    pub(crate) fn new() -> Self {
+        Self {}
+    }
+}
+
+impl<'hw> Operator<'hw> for Sub {
+    fn name(&self) -> String {
+        String::from("Sub")
+    }
+    fn input_size(&self) -> usize {
+        2
+    }
+    fn output_size(&self) -> usize {
+        1
+    }
+    fn perform(&self, inputs: &[&Array<'hw>]) -> Result<Vec<Array<'hw>>> {
+        Ok(vec![inputs[0].elementwise_sub_f32(inputs[1])?])
+    }
+
+    fn gradient<'op, 'g>(
+        &self,
+        _x: &[&Node<'hw, 'op, 'g>],
+        _y: &[&Node<'hw, 'op, 'g>],
+        gy: &[&Node<'hw, 'op, 'g>],
+    ) -> Result<Vec<Node<'hw, 'op, 'g>>> {
+        Ok(vec![*gy[0], -*gy[0]])
+    }
+}
+
+pub(crate) struct Mul;
+
+impl Mul {
+    pub(crate) fn new() -> Self {
+        Self {}
+    }
+}
+
+impl<'hw> Operator<'hw> for Mul {
+    fn name(&self) -> String {
+        String::from("Mul")
+    }
+    fn input_size(&self) -> usize {
+        2
+    }
+    fn output_size(&self) -> usize {
+        1
+    }
+    fn perform(&self, inputs: &[&Array<'hw>]) -> Result<Vec<Array<'hw>>> {
+        Ok(vec![inputs[0].elementwise_mul_f32(inputs[1])?])
+    }
+
+    fn gradient<'op, 'g>(
+        &self,
+        x: &[&Node<'hw, 'op, 'g>],
+        _y: &[&Node<'hw, 'op, 'g>],
+        gy: &[&Node<'hw, 'op, 'g>],
+    ) -> Result<Vec<Node<'hw, 'op, 'g>>> {
+        Ok(vec![*gy[0] * *x[1], *gy[0] * *x[0]])
+    }
+}
+
+pub(crate) struct Div;
+
+impl Div {
+    pub(crate) fn new() -> Self {
+        Self {}
+    }
+}
+
+impl<'hw> Operator<'hw> for Div {
+    fn name(&self) -> String {
+        String::from("Div")
+    }
+    fn input_size(&self) -> usize {
+        2
+    }
+    fn output_size(&self) -> usize {
+        1
+    }
+    fn perform(&self, inputs: &[&Array<'hw>]) -> Result<Vec<Array<'hw>>> {
+        Ok(vec![inputs[0].elementwise_div_f32(inputs[1])?])
+    }
+
+    fn gradient<'op, 'g>(
+        &self,
+        x: &[&Node<'hw, 'op, 'g>],
+        y: &[&Node<'hw, 'op, 'g>],
+        gy: &[&Node<'hw, 'op, 'g>],
+    ) -> Result<Vec<Node<'hw, 'op, 'g>>> {
+        Ok(vec![*gy[0] / *x[1], -*gy[0] * *y[0] / *x[1]])
+    }
+}
 
 #[cfg(test)]
 mod tests {
