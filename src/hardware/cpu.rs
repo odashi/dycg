@@ -102,6 +102,14 @@ unsafe impl Hardware for CpuHardware {
         }
     }
 
+    unsafe fn elementwise_neg_f32(&mut self, src: *const u8, dest: *mut u8, num_elements: usize) {
+        let src = src as *const f32;
+        let dest = dest as *mut f32;
+        for i in 0..num_elements {
+            *dest.add(i) = -*src.add(i)
+        }
+    }
+
     unsafe fn elementwise_add_f32(
         &mut self,
         lhs: *const u8,

@@ -137,6 +137,27 @@ impl<'hw> Array<'hw> {
         Ok(value)
     }
 
+    /// Performs elementwise negation operation and returns a new `Array` of resulting
+    /// values.
+    ///
+    /// This function does not perform broadcasting.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Array)` - A new `Array` holding the results.
+    /// * `Err(Error)` - The operation can not be evaluated for given arguments.
+    pub(crate) fn elementwise_neg_f32(&self) -> Result<Self> {
+        unsafe {
+            let mut output = Self::raw_colocated(self, self.shape);
+            output.buffer.hardware().borrow_mut().elementwise_neg_f32(
+                self.buffer.as_handle(),
+                output.buffer.as_mut_handle(),
+                self.shape.num_elements(),
+            );
+            Ok(output)
+        }
+    }
+
     /// Performs elementwise add operation and returns a new `Array` of resulting values.
     ///
     /// This function does not perform broadcasting.

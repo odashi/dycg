@@ -98,6 +98,20 @@ pub unsafe trait Hardware {
     /// type.
     unsafe fn fill_f32(&mut self, dest: *mut u8, value: f32, num_elements: usize);
 
+    /// Performs elementwise negation operation.
+    ///
+    /// # Arguments
+    ///
+    /// * `src` - Hardware memory for the source.
+    /// * `dest` - Hardware memory for the destination.
+    /// * `num_elements` - Number of elements on each memory.
+    ///
+    /// # Requirements
+    ///
+    /// `src` and `dest` own enough amount of memory to store data with `num_elements` elements
+    /// of the value type.
+    unsafe fn elementwise_neg_f32(&mut self, src: *const u8, dest: *mut u8, num_elements: usize);
+
     /// Performs elementwise add operation.
     ///
     /// # Arguments

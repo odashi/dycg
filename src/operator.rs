@@ -48,6 +48,32 @@ impl<'hw> Operator<'hw> for Constant<'hw> {
     }
 }
 
+pub(crate) struct Neg;
+
+impl Neg {
+    pub(crate) fn new() -> Self {
+        Self {}
+    }
+}
+
+impl<'hw> Operator<'hw> for Neg {
+    fn name(&self) -> String {
+        String::from("Neg")
+    }
+
+    fn input_size(&self) -> usize {
+        1
+    }
+
+    fn output_size(&self) -> usize {
+        1
+    }
+
+    fn perform(&self, inputs: &[&Array<'hw>]) -> Result<Vec<Array<'hw>>> {
+        Ok(vec![inputs[0].elementwise_neg_f32()?])
+    }
+}
+
 macro_rules! define_elementwise_binary_op {
     ( $name:ident, $fn:ident ) => {
         pub(crate) struct $name;

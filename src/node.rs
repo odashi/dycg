@@ -86,6 +86,23 @@ impl<'hw: 'op, 'op: 'g, 'g> PartialEq for Node<'hw, 'op, 'g> {
 
 impl<'hw: 'op, 'op: 'g, 'g> Eq for Node<'hw, 'op, 'g> {}
 
+/// Unary "-" operator for `Node`.
+impl<'hw: 'op, 'op: 'g, 'g> std::ops::Neg for Node<'hw, 'op, 'g> {
+    type Output = Self;
+
+    fn neg(self) -> Self {
+        Self {
+            graph: self.graph,
+            address: self
+                .check_graph(&[])
+                .unwrap()
+                .borrow_mut()
+                .add_step(Box::new(operator::Neg::new()), vec![self.address])
+                .unwrap()[0],
+        }
+    }
+}
+
 /// "+" operator for `Node`.
 impl<'hw: 'op, 'op: 'g, 'g> std::ops::Add for Node<'hw, 'op, 'g> {
     type Output = Self;
@@ -201,6 +218,16 @@ mod tests {
     }
 
     #[test]
+    fn test_neg() {
+        let hw = RefCell::new(CpuHardware::new());
+        let g = RefCell::new(Graph::new());
+
+        let src = Node::from_scalar(&hw, &g, 42.);
+        let dest = -src;
+        assert_eq!(dest.calculate().unwrap().to_scalar(), Ok(-42.));
+    }
+
+    #[test]
     fn test_add() {
         let hw = RefCell::new(CpuHardware::new());
         let g = RefCell::new(Graph::new());
@@ -252,7 +279,7 @@ mod tests {
         let a = Node::from_scalar(&hw, &g, 1.);
         let b = Node::from_scalar(&hw, &g, 2.);
         let c = Node::from_scalar(&hw, &g, 3.);
-        let y = a + b * c;
-        assert_eq!(y.calculate().unwrap().to_scalar(), Ok(7.));
+        let y = a + -b * c;
+        assert_eq!(y.calculate().unwrap().to_scalar(), Ok(-5.));
     }
 }
