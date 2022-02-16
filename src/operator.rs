@@ -237,7 +237,24 @@ mod tests {
     }
 
     #[test]
-    pub fn test_add_op() {
+    fn test_neg_op() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Neg::new();
+        assert_eq!(op.name(), "Neg");
+        assert_eq!(op.input_size(), 1);
+        assert_eq!(op.output_size(), 1);
+        let inputs = vec![Array::new_scalar(&hw, 42.)];
+        let expected = vec![Array::new_scalar(&hw, -42.)];
+        let observed = op.perform(&inputs.iter().collect::<Vec<_>>()).unwrap();
+        assert_eq!(observed.len(), expected.len());
+        for i in 0..expected.len() {
+            assert_eq!(observed[i].shape(), expected[i].shape());
+            assert_eq!(observed[i].to_scalar(), expected[i].to_scalar());
+        }
+    }
+
+    #[test]
+    fn test_add_op() {
         let hw = RefCell::new(CpuHardware::new());
         let op = Add::new();
         assert_eq!(op.name(), "Add");
@@ -245,6 +262,57 @@ mod tests {
         assert_eq!(op.output_size(), 1);
         let inputs = vec![Array::new_scalar(&hw, 1.), Array::new_scalar(&hw, 2.)];
         let expected = vec![Array::new_scalar(&hw, 3.)];
+        let observed = op.perform(&inputs.iter().collect::<Vec<_>>()).unwrap();
+        assert_eq!(observed.len(), expected.len());
+        for i in 0..expected.len() {
+            assert_eq!(observed[i].shape(), expected[i].shape());
+            assert_eq!(observed[i].to_scalar(), expected[i].to_scalar());
+        }
+    }
+
+    #[test]
+    fn test_sub_op() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Sub::new();
+        assert_eq!(op.name(), "Sub");
+        assert_eq!(op.input_size(), 2);
+        assert_eq!(op.output_size(), 1);
+        let inputs = vec![Array::new_scalar(&hw, 1.), Array::new_scalar(&hw, 2.)];
+        let expected = vec![Array::new_scalar(&hw, -1.)];
+        let observed = op.perform(&inputs.iter().collect::<Vec<_>>()).unwrap();
+        assert_eq!(observed.len(), expected.len());
+        for i in 0..expected.len() {
+            assert_eq!(observed[i].shape(), expected[i].shape());
+            assert_eq!(observed[i].to_scalar(), expected[i].to_scalar());
+        }
+    }
+
+    #[test]
+    fn test_mul_op() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Mul::new();
+        assert_eq!(op.name(), "Mul");
+        assert_eq!(op.input_size(), 2);
+        assert_eq!(op.output_size(), 1);
+        let inputs = vec![Array::new_scalar(&hw, 1.), Array::new_scalar(&hw, 2.)];
+        let expected = vec![Array::new_scalar(&hw, 2.)];
+        let observed = op.perform(&inputs.iter().collect::<Vec<_>>()).unwrap();
+        assert_eq!(observed.len(), expected.len());
+        for i in 0..expected.len() {
+            assert_eq!(observed[i].shape(), expected[i].shape());
+            assert_eq!(observed[i].to_scalar(), expected[i].to_scalar());
+        }
+    }
+
+    #[test]
+    fn test_div_op() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Div::new();
+        assert_eq!(op.name(), "Div");
+        assert_eq!(op.input_size(), 2);
+        assert_eq!(op.output_size(), 1);
+        let inputs = vec![Array::new_scalar(&hw, 1.), Array::new_scalar(&hw, 2.)];
+        let expected = vec![Array::new_scalar(&hw, 0.5)];
         let observed = op.perform(&inputs.iter().collect::<Vec<_>>()).unwrap();
         assert_eq!(observed.len(), expected.len());
         for i in 0..expected.len() {
