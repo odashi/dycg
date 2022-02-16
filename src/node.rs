@@ -33,7 +33,9 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
             graph
                 .borrow_mut()
                 .add_step(
-                    Box::new(operator::Constant::new(Array::new_scalar(hardware, value))),
+                    Box::new(operator::constant::Constant::new(Array::new_scalar(
+                        hardware, value,
+                    ))),
                     vec![],
                 )
                 .unwrap()
@@ -97,7 +99,7 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Neg for Node<'hw, 'op, 'g> {
                 .check_graph(&[])
                 .unwrap()
                 .borrow_mut()
-                .add_step(Box::new(operator::Neg::new()), vec![self.address])
+                .add_step(Box::new(operator::neg::Neg::new()), vec![self.address])
                 .unwrap()[0],
         }
     }
@@ -115,7 +117,7 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Add for Node<'hw, 'op, 'g> {
                 .unwrap()
                 .borrow_mut()
                 .add_step(
-                    Box::new(operator::Add::new()),
+                    Box::new(operator::add::Add::new()),
                     vec![self.address, other.address],
                 )
                 .unwrap()[0],
@@ -135,7 +137,7 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Sub for Node<'hw, 'op, 'g> {
                 .unwrap()
                 .borrow_mut()
                 .add_step(
-                    Box::new(operator::Sub::new()),
+                    Box::new(operator::sub::Sub::new()),
                     vec![self.address, other.address],
                 )
                 .unwrap()[0],
@@ -155,7 +157,7 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Mul for Node<'hw, 'op, 'g> {
                 .unwrap()
                 .borrow_mut()
                 .add_step(
-                    Box::new(operator::Mul::new()),
+                    Box::new(operator::mul::Mul::new()),
                     vec![self.address, other.address],
                 )
                 .unwrap()[0],
@@ -175,7 +177,7 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Div for Node<'hw, 'op, 'g> {
                 .unwrap()
                 .borrow_mut()
                 .add_step(
-                    Box::new(operator::Div::new()),
+                    Box::new(operator::div::Div::new()),
                     vec![self.address, other.address],
                 )
                 .unwrap()[0],
