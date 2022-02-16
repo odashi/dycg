@@ -1,6 +1,6 @@
 use crate::array::Array;
 use crate::error::Error;
-use crate::graph::{Graph, NodeAddress};
+use crate::graph::Graph;
 use crate::hardware::Hardware;
 use crate::operator;
 use crate::result::Result;
@@ -14,13 +14,13 @@ pub struct Node<'hw: 'op, 'op: 'g, 'g> {
     /// Reference to the associated graph.
     graph: &'g RefCell<Graph<'hw, 'op>>,
 
-    /// Address of the value in the graph.
-    address: NodeAddress,
+    /// step_id of the value in the graph.
+    step_id: usize,
 }
 
 impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
-    fn new(graph: &'g RefCell<Graph<'hw, 'op>>, address: NodeAddress) -> Self {
-        Self { graph, address }
+    fn new(graph: &'g RefCell<Graph<'hw, 'op>>, step_id: usize) -> Self {
+        Self { graph, step_id }
     }
 
     pub fn from_scalar(
@@ -38,8 +38,6 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
                     ))),
                     vec![],
                 )
-                .unwrap()
-                .pop()
                 .unwrap(),
         )
     }
@@ -47,7 +45,7 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
     pub fn to_scalar(&self) -> f32 {
         self.graph
             .borrow_mut()
-            .calculate(&self.address)
+            .calculate(self.step_id)
             .unwrap()
             .to_scalar()
             .unwrap()
@@ -64,25 +62,25 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
     }
 
     pub fn calculate(&self) -> Result<Array<'hw>> {
-        self.graph.borrow_mut().calculate(&self.address)
+        self.graph.borrow_mut().calculate(self.step_id)
     }
 }
 
 impl<'hw: 'op, 'op: 'g, 'g> fmt::Display for Node<'hw, 'op, 'g> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:016p}:{}", self.graph, self.address)
+        write!(f, "{:016p}:{}", self.graph, self.step_id)
     }
 }
 
 impl<'hw: 'op, 'op: 'g, 'g> fmt::Debug for Node<'hw, 'op, 'g> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:016p}:{}", self.graph, self.address)
+        write!(f, "{:016p}:{}", self.graph, self.step_id)
     }
 }
 
 impl<'hw: 'op, 'op: 'g, 'g> PartialEq for Node<'hw, 'op, 'g> {
     fn eq(&self, other: &Self) -> bool {
-        ptr::eq(self.graph, other.graph) && self.address == other.address
+        ptr::eq(self.graph, other.graph) && self.step_id == other.step_id
     }
 }
 
@@ -95,12 +93,12 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Neg for Node<'hw, 'op, 'g> {
     fn neg(self) -> Self {
         Self {
             graph: self.graph,
-            address: self
+            step_id: self
                 .check_graph(&[])
                 .unwrap()
                 .borrow_mut()
-                .add_step(Box::new(operator::neg::Neg::new()), vec![self.address])
-                .unwrap()[0],
+                .add_step(Box::new(operator::neg::Neg::new()), vec![self.step_id])
+                .unwrap(),
         }
     }
 }
@@ -112,15 +110,15 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Add for Node<'hw, 'op, 'g> {
     fn add(self, other: Self) -> Self {
         Self {
             graph: self.graph,
-            address: self
+            step_id: self
                 .check_graph(&[&other])
                 .unwrap()
                 .borrow_mut()
                 .add_step(
                     Box::new(operator::add::Add::new()),
-                    vec![self.address, other.address],
+                    vec![self.step_id, other.step_id],
                 )
-                .unwrap()[0],
+                .unwrap(),
         }
     }
 }
@@ -132,15 +130,15 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Sub for Node<'hw, 'op, 'g> {
     fn sub(self, other: Self) -> Self {
         Self {
             graph: self.graph,
-            address: self
+            step_id: self
                 .check_graph(&[&other])
                 .unwrap()
                 .borrow_mut()
                 .add_step(
                     Box::new(operator::sub::Sub::new()),
-                    vec![self.address, other.address],
+                    vec![self.step_id, other.step_id],
                 )
-                .unwrap()[0],
+                .unwrap(),
         }
     }
 }
@@ -152,15 +150,15 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Mul for Node<'hw, 'op, 'g> {
     fn mul(self, other: Self) -> Self {
         Self {
             graph: self.graph,
-            address: self
+            step_id: self
                 .check_graph(&[&other])
                 .unwrap()
                 .borrow_mut()
                 .add_step(
                     Box::new(operator::mul::Mul::new()),
-                    vec![self.address, other.address],
+                    vec![self.step_id, other.step_id],
                 )
-                .unwrap()[0],
+                .unwrap(),
         }
     }
 }
@@ -172,15 +170,15 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Div for Node<'hw, 'op, 'g> {
     fn div(self, other: Self) -> Self {
         Self {
             graph: self.graph,
-            address: self
+            step_id: self
                 .check_graph(&[&other])
                 .unwrap()
                 .borrow_mut()
                 .add_step(
                     Box::new(operator::div::Div::new()),
-                    vec![self.address, other.address],
+                    vec![self.step_id, other.step_id],
                 )
-                .unwrap()[0],
+                .unwrap(),
         }
     }
 }
@@ -188,7 +186,6 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Div for Node<'hw, 'op, 'g> {
 #[cfg(test)]
 mod tests {
     use crate::graph::Graph;
-    use crate::graph::NodeAddress;
     use crate::hardware::cpu::CpuHardware;
     use crate::make_shape;
     use crate::node::Node;
@@ -205,14 +202,14 @@ mod tests {
         {
             let g = g.borrow();
             assert_eq!(g.num_steps(), 3);
-            assert_eq!(g.get_step(0).operator.name(), "Constant");
-            assert_eq!(g.get_step(1).operator.name(), "Constant");
-            assert_eq!(g.get_step(2).operator.name(), "Add");
+            assert_eq!(g.get_step(0).unwrap().operator.name(), "Constant");
+            assert_eq!(g.get_step(1).unwrap().operator.name(), "Constant");
+            assert_eq!(g.get_step(2).unwrap().operator.name(), "Add");
         }
 
-        assert_eq!(lhs, Node::new(&g, NodeAddress::new(0, 0)));
-        assert_eq!(rhs, Node::new(&g, NodeAddress::new(1, 0)));
-        assert_eq!(ret, Node::new(&g, NodeAddress::new(2, 0)));
+        assert_eq!(lhs, Node::new(&g, 0));
+        assert_eq!(rhs, Node::new(&g, 1));
+        assert_eq!(ret, Node::new(&g, 2));
 
         let retval = ret.calculate().unwrap();
         assert_eq!(*retval.shape(), make_shape![]);

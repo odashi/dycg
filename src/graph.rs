@@ -2,29 +2,6 @@ use crate::array::Array;
 use crate::error::Error;
 use crate::operator::Operator;
 use crate::result::Result;
-use std::fmt;
-
-/// Address pointing to an individual value in a Graph.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) struct NodeAddress {
-    /// Step ID.
-    step_id: usize,
-
-    /// Output ID.
-    output_id: usize,
-}
-
-impl NodeAddress {
-    pub(crate) fn new(step_id: usize, output_id: usize) -> Self {
-        Self { step_id, output_id }
-    }
-}
-
-impl fmt::Display for NodeAddress {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "<{}:{}>", self.step_id, self.output_id)
-    }
-}
 
 //// Individual step in computation graphs.
 /// Step owns an Operator which consumes several values produced by preceding steps.
@@ -32,24 +9,24 @@ pub(crate) struct Step<'hw: 'op, 'op> {
     /// Operator owned by this step.
     pub(crate) operator: Box<dyn Operator<'hw> + 'op>,
 
-    /// Input nodes.
-    pub(crate) inputs: Vec<NodeAddress>,
+    /// Input step IDs.
+    pub(crate) inputs: Vec<usize>,
 
     /// Output values.
-    pub(crate) outputs: Option<Vec<Array<'hw>>>,
+    pub(crate) output: Option<Array<'hw>>,
 }
 
 impl<'hw: 'op, 'op> Step<'hw, 'op> {
     /// Creates a new `Step` object.
     fn new(
         operator: Box<dyn Operator<'hw> + 'op>,
-        inputs: Vec<NodeAddress>,
-        outputs: Option<Vec<Array<'hw>>>,
+        inputs: Vec<usize>,
+        output: Option<Array<'hw>>,
     ) -> Self {
         Self {
             operator,
             inputs,
-            outputs,
+            output,
         }
     }
 }
@@ -79,56 +56,20 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
         self.steps.len()
     }
 
-    /// Obtains a `Step` specified by a step ID.
+    /// Returns a reference to the specified `Step`.
     ///
     /// # Arguments
     ///
-    /// * `step_id` - ID of the step to be obtained. The value must be smaller than
-    ///   the return value of `num_steps()`.
+    /// * `step_id` - Step ID to be checked.
     ///
     /// # Returns
     ///
-    /// A reference to the specified `Step` in this graph.
-    ///
-    /// # Panics
-    ///
-    /// The `step_id` is invalid for this graph.
-    pub(crate) fn get_step(&self, step_id: usize) -> &Step<'hw, 'op> {
-        &self.steps[step_id]
-    }
-
-    /// Checks if the `NodeAddress` is valid for this Graph.
-    ///
-    /// # Arguments
-    ///
-    /// * `address` - `NodeAddress` object to be checked.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` - The `address` is valid in this graph.
-    /// * `Err(Error)` - The `address` is invalid for returned reason.
-    fn check_address(&self, addr: &NodeAddress) -> Result<()> {
-        if addr.step_id >= self.steps.len() {
-            return Err(Error::InvalidNode(format!(
-                "NodeAddress {} does not point to a valid node.",
-                addr
-            )));
-        }
-        unsafe {
-            if addr.output_id
-                >= self
-                    .steps
-                    .get_unchecked(addr.step_id)
-                    .operator
-                    .output_size()
-            {
-                return Err(Error::InvalidNode(format!(
-                    "NodeAddress {} points to a valid node, but does not point to a valid output.",
-                    addr
-                )));
-            }
-        }
-        Ok(())
+    /// * `Some(&Step)` - A reference to the specified `Step` in this graph.
+    /// * `None` - `step_id` is invalid.
+    pub(crate) fn get_step(&self, step_id: usize) -> Result<&Step<'hw, 'op>> {
+        self.steps
+            .get(step_id)
+            .ok_or(Error::InvalidNode(format!("Invalid step ID: {}", step_id)))
     }
 
     /// Inserts a new step into this graph.
@@ -136,21 +77,19 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
     /// # Arguments
     ///
     /// * `operator` - `Operator` for the new step.
-    /// * `inputs` - Input nodes.
+    /// * `inputs` - Input steps.
     ///
     /// # Returns
     ///
-    /// * `Ok(Vec<Node>)` - A new step is inserted correctly. Each `Node` in the returned value
-    ///   points to output values.
+    /// * `Ok(usize)` - The new step ID inserted by this function.
     /// * `Err(Error)` - Some error occurred during the process.
-    pub(crate) fn add_step(
-        &mut self,
+    pub(crate) fn add_step<'g>(
+        &'g mut self,
         operator: Box<dyn Operator<'hw> + 'op>,
-        inputs: Vec<NodeAddress>,
-    ) -> Result<Vec<NodeAddress>> {
+        inputs: Vec<usize>,
+    ) -> Result<usize> {
         let new_step_id = self.steps.len();
         let input_size = operator.input_size();
-        let output_size = operator.output_size();
 
         if inputs.len() != input_size {
             return Err(Error::InvalidLength(format!(
@@ -160,66 +99,13 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
             )));
         }
 
-        if output_size == 0 {
-            return Err(Error::OutOfRange(format!(
-                "Operator must return at least 1 output."
-            )));
-        }
-
-        for &address in &inputs {
-            self.check_address(&address)?;
+        for &input_id in &inputs {
+            self.get_step(input_id)?;
         }
 
         self.steps.push(Step::new(operator, inputs, None));
 
-        Ok((0..output_size)
-            .map(|output_id| NodeAddress {
-                step_id: new_step_id,
-                output_id,
-            })
-            .collect())
-    }
-
-    /// Checks if the specified step is already calculated or not.
-    ///
-    /// # Arguments
-    ///
-    /// * `step_id` - ID of the step to check.
-    ///
-    /// # Returns
-    ///
-    /// * `true` - The step is already calculated.
-    /// * `false` - Otherwise.
-    ///
-    /// # Requirements
-    ///
-    /// The specified step ID is valid in the graph.
-    unsafe fn is_calculated_unchecked(&self, step_id: usize) -> bool {
-        self.steps.get_unchecked(step_id).outputs.is_some()
-    }
-
-    /// Obtains associated value of the node.
-    ///
-    /// # Arguments
-    ///
-    /// * `address` - Target node to obtain the calculated value.
-    ///
-    /// # Returns
-    ///
-    /// Reference to the calculated value.
-    ///
-    /// # Requirements
-    ///
-    /// * The specified `address` (step/output IDs) is valid in the graph.
-    /// * The associated step is already calculated.
-    unsafe fn get_value_unchecked(&self, address: NodeAddress) -> Array<'hw> {
-        self.steps
-            .get_unchecked(address.step_id)
-            .outputs
-            .as_ref()
-            .unwrap()
-            .get_unchecked(address.output_id)
-            .clone()
+        Ok(new_step_id)
     }
 
     /// Performs calculation to obtain the value of specified node.
@@ -231,14 +117,12 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
     ///
     /// # Arguments
     ///
-    /// * `target` - Target address to obtain the value.
+    /// * `target` - Target step to obtain the value.
     ///
     /// # Returns
     ///
     /// * Calculated/cached value associated to `target`.
-    pub(crate) fn calculate(&mut self, target: &NodeAddress) -> Result<Array<'hw>> {
-        self.check_address(target)?;
-
+    pub(crate) fn calculate(&mut self, target: usize) -> Result<Array<'hw>> {
         // Actions for the push-down automaton representing the following procedure:
         /*
             fn calculate(node) {
@@ -253,49 +137,50 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
         }
 
         // action_stack represents the state of the push-down automaton.
-        let mut action_stack = vec![(target.step_id, Action::Fetch)];
+        let mut action_stack = vec![(target, Action::Fetch)];
 
         while !action_stack.is_empty() {
             let (step_id, action) = action_stack.pop().unwrap();
             match action {
                 Action::Fetch => {
-                    unsafe {
-                        // If the node holds a value already, we need to do nothing.
-                        if self.is_calculated_unchecked(step_id) {
-                            continue;
-                        }
+                    let step = self.get_step(step_id)?;
 
-                        // We need to perform the operator.
-                        action_stack.push((step_id, Action::Perform));
+                    // If the node holds a value already, we need to do nothing.
+                    if step.output.is_some() {
+                        continue;
+                    }
 
-                        // Before performing the operator, we need all inputs to be calculated.
-                        for &input_node in &self.steps.get_unchecked(step_id).inputs {
-                            action_stack.push((input_node.step_id, Action::Fetch));
-                        }
+                    // We need to perform the operator.
+                    action_stack.push((step_id, Action::Perform));
+
+                    // Before performing the operator, we need all inputs to be calculated.
+                    for &input in &step.inputs {
+                        action_stack.push((input, Action::Fetch));
                     }
                 }
                 Action::Perform => {
-                    unsafe {
-                        let node = self.steps.get_unchecked(step_id);
+                    let step = self.get_step(step_id)?;
 
-                        // Collect the input values.
-                        // At this point, all the inputs should be calculated already.
-                        let inputs = node
-                            .inputs
-                            .iter()
-                            .map(|node| {
-                                &self.steps[node.step_id].outputs.as_ref().unwrap()[node.output_id]
-                            })
-                            .collect::<Vec<_>>();
+                    // Collect the input values.
+                    // At this point, all the inputs should be calculated already.
+                    let inputs = step
+                        .inputs
+                        .iter()
+                        .map(|&input_id| self.get_step(input_id).unwrap().output.as_ref().unwrap())
+                        .collect::<Vec<_>>();
 
-                        // Perform the operator.
-                        self.steps.get_unchecked_mut(step_id).outputs =
-                            Some(node.operator.perform(&inputs).unwrap());
-                    }
+                    // Perform the operator.
+                    self.steps[step_id].output = Some(step.operator.perform(&inputs).unwrap());
                 }
             }
         }
 
-        Ok(unsafe { self.get_value_unchecked(*target) })
+        Ok(self
+            .get_step(target)
+            .unwrap()
+            .output
+            .as_ref()
+            .unwrap()
+            .clone())
     }
 }
