@@ -2,11 +2,11 @@
 authors = ["Yusuke Oda <yus.takara@gmail.com>"]
 documentation = "https://docs.rs/dycg"
 edition = "2021"
-homepage = "https://github.com/odashi/dycg"
+homepage = "https://github.com/cl-tohoku/dycg"
 license = "MIT/Apache-2.0"
 name = "dycg"
 readme = "README.md"
-repository = "https://github.com/odashi/dycg"
+repository = "https://github.com/cl-tohoku/dycg"
 version = "0.1.0"
 
 description = """
