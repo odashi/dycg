@@ -28,9 +28,15 @@ impl CpuHardware {
     }
 }
 
+impl Default for CpuHardware {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Drop for CpuHardware {
     fn drop(&mut self) {
-        if self.supplied.len() > 0 {
+        if !self.supplied.is_empty() {
             // Leak detected. Removes all pointers anyway.
             let num_leaked = self.supplied.len();
 
@@ -59,11 +65,9 @@ unsafe impl Hardware for CpuHardware {
         }
 
         // Remembers only memory with nonzero length.
-        if size > 0 {
-            if !self.supplied.insert((handle as usize, size)) {
-                // As we ignored zero-length memories, this condition should never be satisfied.
-                panic!("Handle {:016p} is supplied twice.", handle);
-            }
+        if size > 0 && !self.supplied.insert((handle as usize, size)) {
+            // As we ignored zero-length memories, this condition should never be satisfied.
+            panic!("Handle {:016p} is supplied twice.", handle);
         }
 
         handle
@@ -71,10 +75,8 @@ unsafe impl Hardware for CpuHardware {
 
     unsafe fn deallocate_memory(&mut self, handle: *mut u8, size: usize) {
         // Removes only memory with nonzero length.
-        if size > 0 {
-            if !self.supplied.remove(&((handle as usize), size)) {
-                panic!("Handle {:016p} was not supplied.", handle);
-            }
+        if size > 0 && !self.supplied.remove(&((handle as usize), size)) {
+            panic!("Handle {:016p} was not supplied.", handle);
         }
 
         alloc::dealloc(

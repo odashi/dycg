@@ -69,7 +69,7 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
     pub(crate) fn get_step(&self, step_id: usize) -> Result<&Step<'hw, 'op>> {
         self.steps
             .get(step_id)
-            .ok_or(Error::InvalidNode(format!("Invalid step ID: {}", step_id)))
+            .ok_or_else(|| Error::InvalidNode(format!("Invalid step ID: {}", step_id)))
     }
 
     /// Inserts a new step into this graph.
@@ -182,5 +182,11 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
             .as_ref()
             .unwrap()
             .clone())
+    }
+}
+
+impl<'hw: 'op, 'op> Default for Graph<'hw, 'op> {
+    fn default() -> Self {
+        Self::new()
     }
 }

@@ -75,15 +75,6 @@ impl<'hw> Buffer<'hw> {
         self.hardware
     }
 
-    /// Returns the size of the owned memory.
-    ///
-    /// # Returns
-    ///
-    /// The size of the owned memory.
-    pub(crate) fn size(&self) -> usize {
-        self.size
-    }
-
     /// Returns the const handle owned by this buffer.
     ///
     /// # Returns
@@ -127,14 +118,12 @@ impl<'hw> Buffer<'hw> {
     /// * `Ok(())` - The both buffers are colocated on the same hardware.
     /// * `Err(Error)` - Otherwise.
     pub(crate) fn check_colocated(&self, other: &Self) -> Result<()> {
-        self.is_colocated(other)
-            .then(|| ())
-            .ok_or(Error::InvalidHardware((|| {
-                format!(
-                    "Buffers are not colocated on the same hardware. self: {:p}, other: {:p}",
-                    self.hardware, other.hardware,
-                )
-            })()))
+        self.is_colocated(other).then(|| ()).ok_or_else(|| {
+            Error::InvalidHardware(format!(
+                "Buffers are not colocated on the same hardware. self: {:p}, other: {:p}",
+                self.hardware, other.hardware,
+            ))
+        })
     }
 }
 
@@ -218,7 +207,7 @@ mod tests {
         let hw = RefCell::new(CpuHardware::new());
         unsafe {
             let buf = Buffer::raw(&hw, 123);
-            assert_eq!(buf.size(), 123);
+            assert_eq!(buf.size, 123);
         }
     }
 

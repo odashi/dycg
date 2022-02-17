@@ -6,6 +6,10 @@
 /// As the real hardware lives longer than the programs, structs implementing this trait may be
 /// installed as a static object.
 /// They require implicit/explicit initialization procedure during the program startups.
+///
+/// # Safety
+///
+/// This trait treats unsafe memory blocks or similar hardware-specific objects.
 pub unsafe trait Hardware {
     /// Allocates a new memory with at least the requested size and returns its handle.
     ///
@@ -53,7 +57,7 @@ pub unsafe trait Hardware {
     /// * `dest` - Target hardware memory.
     /// * `size` - Size in bytes to copy.
     ///
-    /// # Requirements
+    /// # Safety
     ///
     /// Both `src` and `dest` owns enough amount of memory to store data with `size` bytes long.
     unsafe fn copy_host_to_hardware(&mut self, src: *const u8, dest: *mut u8, size: usize);
@@ -66,7 +70,7 @@ pub unsafe trait Hardware {
     /// * `dest` - Target host memory.
     /// * `size` - Size in bytes to copy.
     ///
-    /// # Requirements
+    /// # Safety
     ///
     /// Both `src` and `dest` own enough amount of memory to store data with `size` bytes long.
     unsafe fn copy_hardware_to_host(&mut self, src: *const u8, dest: *mut u8, size: usize);
@@ -79,7 +83,7 @@ pub unsafe trait Hardware {
     /// * `dest` - Target hardware memory.
     /// * `size` - Size in bytes to copy.
     ///
-    /// # Requirements
+    /// # Safety
     ///
     /// Both `src` and `dest` own enough amount of memory to store data with `size` bytes long.
     unsafe fn copy_hardware_to_hardware(&mut self, src: *const u8, dest: *mut u8, size: usize);
@@ -92,7 +96,7 @@ pub unsafe trait Hardware {
     /// * `value` - Value to fill.
     /// * `num_elements` - Number of elements to be filled.
     ///
-    /// # Requirements
+    /// # Safety
     ///
     /// `src` own enough amount of memory to store data with `num_elements` elements of the value
     /// type.
@@ -106,7 +110,7 @@ pub unsafe trait Hardware {
     /// * `dest` - Hardware memory for the destination.
     /// * `num_elements` - Number of elements on each memory.
     ///
-    /// # Requirements
+    /// # Safety
     ///
     /// `src` and `dest` own enough amount of memory to store data with `num_elements` elements
     /// of the value type.
@@ -121,7 +125,7 @@ pub unsafe trait Hardware {
     /// * `dest` - Hardware memory for destination.
     /// * `num_elements` - Number of elements on each memory.
     ///
-    /// # Requirements
+    /// # Safety
     ///
     /// `lhs`, `rhs`, and `dest` own enough amount of memory to store data with `num_elements`
     /// elements of the value type.
@@ -142,7 +146,7 @@ pub unsafe trait Hardware {
     /// * `dest` - Hardware memory for destination.
     /// * `num_elements` - Number of elements on each memory.
     ///
-    /// # Requirements
+    /// # Safety
     ///
     /// `lhs`, `rhs`, and `dest` own enough amount of memory to store data with `num_elements`
     /// elements of the value type.
@@ -163,7 +167,7 @@ pub unsafe trait Hardware {
     /// * `dest` - Hardware memory for destination.
     /// * `num_elements` - Number of elements on each memory.
     ///
-    /// # Requirements
+    /// # Safety
     ///
     /// `lhs`, `rhs`, and `dest` own enough amount of memory to store data with `num_elements`
     /// elements of the value type.
@@ -184,7 +188,7 @@ pub unsafe trait Hardware {
     /// * `dest` - Hardware memory for destination.
     /// * `num_elements` - Number of elements on each memory.
     ///
-    /// # Requirements
+    /// # Safety
     ///
     /// `lhs`, `rhs`, and `dest` own enough amount of memory to store data with `num_elements`
     /// elements of the value type.

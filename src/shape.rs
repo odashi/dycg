@@ -90,12 +90,12 @@ impl Shape {
     /// * `Ok(())` - `index` is valid in this shape.
     /// * `Err(Error)` = `index` is invalid.
     pub fn check_index(&self, index: usize) -> Result<()> {
-        (index < self.num_dimensions)
-            .then(|| ())
-            .ok_or(Error::OutOfRange(format!(
+        (index < self.num_dimensions).then(|| ()).ok_or_else(|| {
+            Error::OutOfRange(format!(
                 "Shape index out of range: index:{} >= num_dimensions:{}",
                 index, self.num_dimensions
-            )))
+            ))
+        })
     }
 
     /// Checks if the shape represents a scalar or not.
@@ -105,12 +105,12 @@ impl Shape {
     /// * `Ok(())` - Shape represents a scalar.
     /// * `Err(Error)` - Shape does not represent a scalar.
     pub fn check_is_scalar(&self) -> Result<()> {
-        (self.num_dimensions == 0)
-            .then(|| ())
-            .ok_or(Error::InvalidShape(format!(
+        (self.num_dimensions == 0).then(|| ()).ok_or_else(|| {
+            Error::InvalidShape(format!(
                 "Shape is not representing a scalar. num_dimensions: {}",
                 self.num_dimensions
-            )))
+            ))
+        })
     }
 
     /// Obtains the size of the specified dimension in this shape.

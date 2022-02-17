@@ -21,7 +21,7 @@ impl<'hw> Operator<'hw> for Neg {
     }
 
     fn perform(&self, inputs: &[&Array<'hw>]) -> Result<Array<'hw>> {
-        Ok(inputs[0].elementwise_neg_f32()?)
+        inputs[0].elementwise_neg_f32()
     }
 
     fn gradient<'op, 'g>(
