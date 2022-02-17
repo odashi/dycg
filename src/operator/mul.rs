@@ -21,7 +21,7 @@ impl<'hw> Operator<'hw> for Mul {
     }
 
     fn perform(&self, inputs: &[&Array<'hw>]) -> Result<Array<'hw>> {
-        Ok(inputs[0].elementwise_mul_f32(inputs[1])?)
+        inputs[0].elementwise_mul_f32(inputs[1])
     }
 
     fn gradient<'op, 'g>(

@@ -56,9 +56,11 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
             .iter()
             .all(|&o| ptr::eq(self.graph, o.graph))
             .then(|| self.graph)
-            .ok_or(Error::InvalidGraph(format!(
-                "Attempted calculation between Nodes on different Graph."
-            )))
+            .ok_or_else(|| {
+                Error::InvalidGraph(
+                    "Attempted calculation between Nodes on different Graph.".to_string(),
+                )
+            })
     }
 
     pub fn calculate(&self) -> Result<Array<'hw>> {
@@ -198,7 +200,7 @@ pub fn grad<'hw, 'op, 'g>(
     _y: Node<'hw, 'op, 'g>,
     _x: Node<'hw, 'op, 'g>,
 ) -> Result<Node<'hw, 'op, 'g>> {
-    Err(Error::NotSupported(format!("Not implemented.")))
+    Err(Error::NotSupported("Not implemented.".to_string()))
 }
 
 #[cfg(test)]
