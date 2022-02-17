@@ -148,7 +148,7 @@ impl Shape {
     /// Calculates the number of elements represented by this shape.
     ///
     /// The number of elements is defined as usually the product of all valid dimension sizes.
-    /// This value could become 0 if some dimension has num_dimensionss of 0.
+    /// This value could become 0 if some dimension has num_dimensions of 0.
     ///
     /// # Returns
     ///

@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use std::fmt;
 use std::ptr;
 
-/// Node in an computation graph.
+/// Node in a computation graph.
 #[derive(Clone, Copy)]
 pub struct Node<'hw: 'op, 'op: 'g, 'g> {
     /// Reference to the associated graph.
@@ -183,7 +183,7 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Div for Node<'hw, 'op, 'g> {
     }
 }
 
-/// Calculates the value of the derivatibe dy/dx.
+/// Calculates the value of the derivative dy/dx.
 ///
 /// # Arguments
 ///
@@ -192,7 +192,7 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Div for Node<'hw, 'op, 'g> {
 ///
 /// # Returns
 ///
-/// * `Ok(Node)` - A new `Node` representing the deribative  dy/dx.
+/// * `Ok(Node)` - A new `Node` representing the derivative  dy/dx.
 /// * `Err(Error)` - Some errors occurred during the process.
 pub fn grad<'hw, 'op, 'g>(
     _y: Node<'hw, 'op, 'g>,
