@@ -183,6 +183,24 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Div for Node<'hw, 'op, 'g> {
     }
 }
 
+/// Calculates the value of the derivatibe dy/dx.
+///
+/// # Arguments
+///
+/// * `y` - `Node` representing the output value.
+/// * `x` - `Node` representing the input value.
+///
+/// # Returns
+///
+/// * `Ok(Node)` - A new `Node` representing the deribative  dy/dx.
+/// * `Err(Error)` - Some errors occurred during the process.
+pub fn grad<'hw, 'op, 'g>(
+    _y: Node<'hw, 'op, 'g>,
+    _x: Node<'hw, 'op, 'g>,
+) -> Result<Node<'hw, 'op, 'g>> {
+    Err(Error::NotSupported(format!("Not implemented.")))
+}
+
 #[cfg(test)]
 mod tests {
     use crate::graph::Graph;
