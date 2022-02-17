@@ -24,12 +24,15 @@ impl<'hw> Operator<'hw> for Div {
         inputs[0].elementwise_div_f32(inputs[1])
     }
 
-    fn gradient<'op, 'g>(
+    fn gradient<'op: 'g, 'g>(
         &self,
         x: &[Node<'hw, 'op, 'g>],
         y: Node<'hw, 'op, 'g>,
         gy: Node<'hw, 'op, 'g>,
-    ) -> Result<Vec<Node<'hw, 'op, 'g>>> {
+    ) -> Result<Vec<Node<'hw, 'op, 'g>>>
+    where
+        'hw: 'op,
+    {
         let gx0 = gy / x[1];
         Ok(vec![gx0, -y * gx0])
     }
