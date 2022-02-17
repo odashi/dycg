@@ -26,11 +26,12 @@ impl<'hw> Operator<'hw> for Div {
 
     fn gradient<'op, 'g>(
         &self,
-        x: &[&Node<'hw, 'op, 'g>],
-        y: &Node<'hw, 'op, 'g>,
-        gy: &Node<'hw, 'op, 'g>,
+        x: &[Node<'hw, 'op, 'g>],
+        y: Node<'hw, 'op, 'g>,
+        gy: Node<'hw, 'op, 'g>,
     ) -> Result<Vec<Node<'hw, 'op, 'g>>> {
-        Ok(vec![*gy / *x[1], -*gy * *y / *x[1]])
+        let gx0 = gy / x[1];
+        Ok(vec![gx0, -y * gx0])
     }
 }
 

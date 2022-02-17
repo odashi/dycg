@@ -26,11 +26,11 @@ impl<'hw> Operator<'hw> for Mul {
 
     fn gradient<'op, 'g>(
         &self,
-        x: &[&Node<'hw, 'op, 'g>],
-        _y: &Node<'hw, 'op, 'g>,
-        gy: &Node<'hw, 'op, 'g>,
+        x: &[Node<'hw, 'op, 'g>],
+        _y: Node<'hw, 'op, 'g>,
+        gy: Node<'hw, 'op, 'g>,
     ) -> Result<Vec<Node<'hw, 'op, 'g>>> {
-        Ok(vec![*gy * *x[1], *gy * *x[0]])
+        Ok(vec![gy * x[1], gy * x[0]])
     }
 }
 

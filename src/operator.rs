@@ -10,9 +10,9 @@ pub(crate) trait Operator<'hw> {
     fn perform(&self, inputs: &[&Array<'hw>]) -> Result<Array<'hw>>;
     fn gradient<'op, 'g>(
         &self,
-        _x: &[&Node<'hw, 'op, 'g>],
-        _y: &Node<'hw, 'op, 'g>,
-        _gy: &Node<'hw, 'op, 'g>,
+        _x: &[Node<'hw, 'op, 'g>],
+        _y: Node<'hw, 'op, 'g>,
+        _gy: Node<'hw, 'op, 'g>,
     ) -> Result<Vec<Node<'hw, 'op, 'g>>> {
         Err(Error::NotSupported(format!(
             "No gradient definition for {}",
