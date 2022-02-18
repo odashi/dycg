@@ -1,6 +1,7 @@
 use crate::array::Array;
 use crate::operator::Operator;
 use crate::result::Result;
+use crate::shape::Shape;
 
 pub(crate) struct Constant<'hw> {
     value: Array<'hw>,
@@ -19,6 +20,10 @@ impl<'hw> Operator<'hw> for Constant<'hw> {
 
     fn input_size(&self) -> usize {
         0
+    }
+
+    fn perform_shape(&self, _inputs: &[&Shape]) -> Result<Shape> {
+        Ok(self.value.shape().clone())
     }
 
     fn perform(&self, _inputs: &[&Array<'hw>]) -> Result<Array<'hw>> {

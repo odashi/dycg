@@ -7,7 +7,7 @@ use std::mem::size_of;
 const MAX_NUM_DIMENSIONS: usize = 8;
 
 /// Shape of a value.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Shape {
     /// Number of dimensions of the shape.
     /// Only values in `dimensions` with indices smaller than `num_dimensions` are available.
@@ -187,7 +187,7 @@ impl Shape {
     /// * `Err(Error)` - Operation failed.
     pub fn elementwise(&self, other: &Self) -> Result<Self> {
         if self == other {
-            Ok(*self)
+            Ok(self.clone())
         } else {
             Err(Error::InvalidShape(format!(
                 "Elementwise operation can not be evaluated for hapes {} and {}.",

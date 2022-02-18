@@ -2,6 +2,7 @@ use crate::array::Array;
 use crate::node::Node;
 use crate::operator::Operator;
 use crate::result::Result;
+use crate::shape::Shape;
 
 pub(crate) struct Neg;
 
@@ -18,6 +19,10 @@ impl<'hw> Operator<'hw> for Neg {
 
     fn input_size(&self) -> usize {
         1
+    }
+
+    fn perform_shape(&self, inputs: &[&Shape]) -> Result<Shape> {
+        Ok(inputs[0].clone())
     }
 
     fn perform(&self, inputs: &[&Array<'hw>]) -> Result<Array<'hw>> {
