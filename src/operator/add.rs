@@ -2,6 +2,7 @@ use crate::array::Array;
 use crate::node::Node;
 use crate::operator::Operator;
 use crate::result::Result;
+use crate::shape::Shape;
 
 pub(crate) struct Add;
 
@@ -18,6 +19,10 @@ impl<'hw> Operator<'hw> for Add {
 
     fn input_size(&self) -> usize {
         2
+    }
+
+    fn perform_shape(&self, inputs: &[&Shape]) -> Result<Shape> {
+        inputs[0].elementwise(inputs[1])
     }
 
     fn perform(&self, inputs: &[&Array<'hw>]) -> Result<Array<'hw>> {
