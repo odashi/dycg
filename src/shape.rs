@@ -190,7 +190,7 @@ impl Shape {
             Ok(self.clone())
         } else {
             Err(Error::InvalidShape(format!(
-                "Elementwise operation can not be evaluated for hapes {} and {}.",
+                "Elementwise operation can not be evaluated for shapes {} and {}.",
                 self, other
             )))
         }
