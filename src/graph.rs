@@ -2,8 +2,32 @@ use crate::array::Array;
 use crate::error::Error;
 use crate::operator::Operator;
 use crate::result::Result;
+use crate::shape::Shape;
 
-//// Individual step in computation graphs.
+/// Placeholder of `Array`s.
+/// Unlike `Option`, the object always holds its `Shape` informatin.
+pub(crate) enum ArrayPlaceholder<'hw> {
+    Unassigned(Shape),
+    Assigned(Array<'hw>),
+}
+
+impl<'hw> ArrayPlaceholder<'hw> {
+    pub(crate) fn shape(&self) -> &Shape {
+        match self {
+            Self::Unassigned(ref shape) => shape,
+            Self::Assigned(ref array) => array.shape(),
+        }
+    }
+
+    pub(crate) fn array(&self) -> Option<&Array<'hw>> {
+        match self {
+            Self::Unassigned(_) => None,
+            Self::Assigned(ref array) => Some(array),
+        }
+    }
+}
+
+/// Individual step in computation graphs.
 /// Step owns an Operator which consumes several values produced by preceding steps.
 pub(crate) struct Step<'hw: 'op, 'op> {
     /// Operator owned by this step.
@@ -13,7 +37,7 @@ pub(crate) struct Step<'hw: 'op, 'op> {
     pub(crate) inputs: Vec<usize>,
 
     /// Output values.
-    pub(crate) output: Option<Array<'hw>>,
+    pub(crate) output: ArrayPlaceholder<'hw>,
 }
 
 impl<'hw: 'op, 'op> Step<'hw, 'op> {
@@ -21,7 +45,7 @@ impl<'hw: 'op, 'op> Step<'hw, 'op> {
     fn new(
         operator: Box<dyn Operator<'hw> + 'op>,
         inputs: Vec<usize>,
-        output: Option<Array<'hw>>,
+        output: ArrayPlaceholder<'hw>,
     ) -> Self {
         Self {
             operator,
@@ -99,11 +123,18 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
             )));
         }
 
-        for &input_id in &inputs {
-            self.get_step(input_id)?;
-        }
+        let input_shapes = inputs
+            .iter()
+            .map(|&step_id| Ok(self.get_step(step_id)?.output.shape()))
+            .collect::<Result<Vec<_>>>()?;
 
-        self.steps.push(Step::new(operator, inputs, None));
+        let output_shape = operator.perform_shape(&input_shapes)?;
+
+        self.steps.push(Step::new(
+            operator,
+            inputs,
+            ArrayPlaceholder::Unassigned(output_shape),
+        ));
 
         Ok(new_step_id)
     }
@@ -123,12 +154,17 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
     ///
     /// * Calculated/cached value associated to `target`.
     pub(crate) fn calculate(&mut self, target: usize) -> Result<Array<'hw>> {
+        // Avoiding an edge case: inner step_ids should be correct, but `target` is not constrained.
+        if target >= self.steps.len() {
+            return Err(Error::InvalidNode(format!("Invalid step ID: {}", target)));
+        }
+
         // Actions for the push-down automaton representing the following procedure:
         /*
-            fn calculate(node) {
-                if is_cached(node) { return; }
-                for input in node.inputs { calculate(input); }
-                perform(node);
+            fn calculate(step) {
+                if assigned(step) { return; }
+                for input in step.inputs { calculate(input); }
+                perform(step);
             }
         */
         enum Action {
@@ -143,10 +179,10 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
             let (step_id, action) = action_stack.pop().unwrap();
             match action {
                 Action::Fetch => {
-                    let step = self.get_step(step_id)?;
+                    let step = unsafe { self.steps.get_unchecked(step_id) };
 
                     // If the node holds a value already, we need to do nothing.
-                    if step.output.is_some() {
+                    if let ArrayPlaceholder::Assigned(_) = step.output {
                         continue;
                     }
 
@@ -159,29 +195,35 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
                     }
                 }
                 Action::Perform => {
-                    let step = self.get_step(step_id)?;
+                    let step = unsafe { self.steps.get_unchecked(step_id) };
 
                     // Collect the input values.
                     // At this point, all the inputs should be calculated already.
                     let inputs = step
                         .inputs
                         .iter()
-                        .map(|&input_id| self.get_step(input_id).unwrap().output.as_ref().unwrap())
+                        .map(|&input_id| {
+                            unsafe { self.steps.get_unchecked(input_id) }
+                                .output
+                                .array()
+                                .unwrap()
+                        })
                         .collect::<Vec<_>>();
 
                     // Perform the operator.
-                    self.steps[step_id].output = Some(step.operator.perform(&inputs).unwrap());
+                    unsafe { self.steps.get_unchecked_mut(step_id) }.output =
+                        ArrayPlaceholder::Assigned(step.operator.perform(&inputs).unwrap());
                 }
             }
         }
 
-        Ok(self
-            .get_step(target)
-            .unwrap()
-            .output
-            .as_ref()
-            .unwrap()
-            .clone())
+        if let ArrayPlaceholder::Assigned(ref array) =
+            unsafe { self.steps.get_unchecked(target) }.output
+        {
+            return Ok(array.clone());
+        }
+
+        panic!("Target step could not be calculated for some reason.");
     }
 }
 
