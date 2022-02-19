@@ -7,11 +7,19 @@ use crate::shape::Shape;
 /// Placeholder of `Array`s.
 /// Unlike `Option`, the object always holds its `Shape` informatin.
 pub(crate) enum ArrayPlaceholder<'hw> {
+    /// `Array` is not assigned, while its `Shape` is known.
     Unassigned(Shape),
+
+    /// `Array` is assigned.
     Assigned(Array<'hw>),
 }
 
 impl<'hw> ArrayPlaceholder<'hw> {
+    /// Obtains the `Shape` of this placeholder.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the inner `Shape` object.
     pub(crate) fn shape(&self) -> &Shape {
         match self {
             Self::Unassigned(ref shape) => shape,
@@ -19,6 +27,12 @@ impl<'hw> ArrayPlaceholder<'hw> {
         }
     }
 
+    /// Obtains the `Array` if the placeholder holds it.
+    ///
+    /// # Returns
+    ///
+    /// * `Some(&Array)` - A reference to the inner `Array` object.
+    /// * `None` - The placeholder does not hold the `Array` object.
     pub(crate) fn array(&self) -> Option<&Array<'hw>> {
         match self {
             Self::Unassigned(_) => None,
