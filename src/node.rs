@@ -356,15 +356,33 @@ mod tests {
     }
 
     #[test]
-    fn test_fill() {
+    fn test_fill_scalar() {
         let hw = RefCell::new(CpuHardware::new());
         let g = RefCell::new(Graph::new());
-
         let ret = Node::fill(&hw, &g, make_shape![], 123.);
-
         assert_eq!(ret.shape(), make_shape![]);
-
         assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(123.));
+    }
+
+    #[test]
+    fn test_fill_0() {
+        let hw = RefCell::new(CpuHardware::new());
+        let g = RefCell::new(Graph::new());
+        let ret = Node::fill(&hw, &g, make_shape![0], 123.);
+        assert_eq!(ret.shape(), make_shape![0]);
+        assert_eq!(ret.calculate().unwrap().get_values_f32(), vec![]);
+    }
+
+    #[test]
+    fn test_fill_n() {
+        let hw = RefCell::new(CpuHardware::new());
+        let g = RefCell::new(Graph::new());
+        let ret = Node::fill(&hw, &g, make_shape![3], 123.);
+        assert_eq!(ret.shape(), make_shape![3]);
+        assert_eq!(
+            ret.calculate().unwrap().get_values_f32(),
+            vec![123., 123., 123.]
+        );
     }
 
     #[test]
