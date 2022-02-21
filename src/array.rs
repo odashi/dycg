@@ -731,6 +731,32 @@ mod tests {
     }
 
     #[test]
+    fn test_elementwise_binary_f32_scalar_self() {
+        let hw = RefCell::new(CpuHardware::new());
+        let a = Array::scalar_f32(&hw, 111.);
+
+        let y = a.elementwise_add_f32(&a).unwrap();
+        assert_eq!(y.shape, make_shape![]);
+        assert!(ptr::eq(y.buffer.hardware(), &hw));
+        assert_eq!(y.get_values_f32(), vec![222.]);
+
+        let y = a.elementwise_sub_f32(&a).unwrap();
+        assert_eq!(y.shape, make_shape![]);
+        assert!(ptr::eq(y.buffer.hardware(), &hw));
+        assert_eq!(y.get_values_f32(), vec![0.]);
+
+        let y = a.elementwise_mul_f32(&a).unwrap();
+        assert_eq!(y.shape, make_shape![]);
+        assert!(ptr::eq(y.buffer.hardware(), &hw));
+        assert_eq!(y.get_values_f32(), vec![12321.]);
+
+        let y = a.elementwise_div_f32(&a).unwrap();
+        assert_eq!(y.shape, make_shape![]);
+        assert!(ptr::eq(y.buffer.hardware(), &hw));
+        assert_eq!(y.get_values_f32(), vec![1.]);
+    }
+
+    #[test]
     fn test_elementwise_binary_f32_0_0() {
         let hw = RefCell::new(CpuHardware::new());
         let a = Array::constant_f32(&hw, make_shape![0], &[]).unwrap();
@@ -752,6 +778,32 @@ mod tests {
         assert_eq!(y.get_values_f32(), vec![]);
 
         let y = a.elementwise_div_f32(&b).unwrap();
+        assert_eq!(y.shape, make_shape![0]);
+        assert!(ptr::eq(y.buffer.hardware(), &hw));
+        assert_eq!(y.get_values_f32(), vec![]);
+    }
+
+    #[test]
+    fn test_elementwise_binary_f32_0_self() {
+        let hw = RefCell::new(CpuHardware::new());
+        let a = Array::constant_f32(&hw, make_shape![0], &[]).unwrap();
+
+        let y = a.elementwise_add_f32(&a).unwrap();
+        assert_eq!(y.shape, make_shape![0]);
+        assert!(ptr::eq(y.buffer.hardware(), &hw));
+        assert_eq!(y.get_values_f32(), vec![]);
+
+        let y = a.elementwise_sub_f32(&a).unwrap();
+        assert_eq!(y.shape, make_shape![0]);
+        assert!(ptr::eq(y.buffer.hardware(), &hw));
+        assert_eq!(y.get_values_f32(), vec![]);
+
+        let y = a.elementwise_mul_f32(&a).unwrap();
+        assert_eq!(y.shape, make_shape![0]);
+        assert!(ptr::eq(y.buffer.hardware(), &hw));
+        assert_eq!(y.get_values_f32(), vec![]);
+
+        let y = a.elementwise_div_f32(&a).unwrap();
         assert_eq!(y.shape, make_shape![0]);
         assert!(ptr::eq(y.buffer.hardware(), &hw));
         assert_eq!(y.get_values_f32(), vec![]);
@@ -783,6 +835,32 @@ mod tests {
         assert!(ptr::eq(y.buffer.hardware(), &hw));
         // Attempting exact matching even for 0.4.
         assert_eq!(y.get_values_f32(), vec![0.25, 0.4, 0.5]);
+    }
+
+    #[test]
+    fn test_elementwise_binary_f32_n_self() {
+        let hw = RefCell::new(CpuHardware::new());
+        let a = Array::constant_f32(&hw, make_shape![3], &[111., 222., 333.]).unwrap();
+
+        let y = a.elementwise_add_f32(&a).unwrap();
+        assert_eq!(y.shape, make_shape![3]);
+        assert!(ptr::eq(y.buffer.hardware(), &hw));
+        assert_eq!(y.get_values_f32(), vec![222., 444., 666.]);
+
+        let y = a.elementwise_sub_f32(&a).unwrap();
+        assert_eq!(y.shape, make_shape![3]);
+        assert!(ptr::eq(y.buffer.hardware(), &hw));
+        assert_eq!(y.get_values_f32(), vec![0., 0., 0.]);
+
+        let y = a.elementwise_mul_f32(&a).unwrap();
+        assert_eq!(y.shape, make_shape![3]);
+        assert!(ptr::eq(y.buffer.hardware(), &hw));
+        assert_eq!(y.get_values_f32(), vec![12321., 49284., 110889.]);
+
+        let y = a.elementwise_div_f32(&a).unwrap();
+        assert_eq!(y.shape, make_shape![3]);
+        assert!(ptr::eq(y.buffer.hardware(), &hw));
+        assert_eq!(y.get_values_f32(), vec![1., 1., 1.]);
     }
 
     #[test]
@@ -875,6 +953,24 @@ mod tests {
         let hw = RefCell::new(CpuHardware::new());
         let a = Array::constant_f32(&hw, make_shape![1], &[111.]).unwrap();
         let b = Array::constant_f32(&hw, make_shape![3], &[444., 555., 666.]).unwrap();
+
+        assert!(a.elementwise_add_f32(&b).is_err());
+        assert!(a.elementwise_sub_f32(&b).is_err());
+        assert!(a.elementwise_mul_f32(&b).is_err());
+        assert!(a.elementwise_div_f32(&b).is_err());
+
+        assert!(b.elementwise_add_f32(&a).is_err());
+        assert!(b.elementwise_sub_f32(&a).is_err());
+        assert!(b.elementwise_mul_f32(&a).is_err());
+        assert!(b.elementwise_div_f32(&a).is_err());
+    }
+
+    #[test]
+    fn test_elementwise_binary_f32_colocation() {
+        let hw1 = RefCell::new(CpuHardware::new());
+        let hw2 = RefCell::new(CpuHardware::new());
+        let a = Array::scalar_f32(&hw1, 123.);
+        let b = Array::scalar_f32(&hw2, 123.);
 
         assert!(a.elementwise_add_f32(&b).is_err());
         assert!(a.elementwise_sub_f32(&b).is_err());
