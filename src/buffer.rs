@@ -109,7 +109,7 @@ impl<'hw> Buffer<'hw> {
     ///
     /// This function returns a raw pointer of the inner memory or a handle of the associated
     /// device-specific object.
-    /// The value can not be used without knowing the associated hardware.
+    /// The returned value can not be used without knowing the associated hardware.
     pub unsafe fn as_mut_handle(&mut self) -> *mut u8 {
         self.handle
     }
