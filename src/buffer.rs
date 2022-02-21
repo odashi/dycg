@@ -92,7 +92,7 @@ impl<'hw> Buffer<'hw> {
     ///
     /// # Safety
     ///
-    /// This function returns a raw pointer of the inner memory or a haandle of the associated
+    /// This function returns a raw pointer of the inner memory or a handle of the associated
     /// hardware-specific object.
     /// The value can not be used without knowing the associated hardware.
     pub unsafe fn as_handle(&self) -> *const u8 {
