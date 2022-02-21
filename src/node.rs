@@ -34,7 +34,7 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
             graph
                 .borrow_mut()
                 .add_step(
-                    Box::new(operator::constant::Constant::new(Array::new_scalar(
+                    Box::new(operator::constant::Constant::new(Array::scalar_f32(
                         hardware, value,
                     ))),
                     vec![],
@@ -48,7 +48,7 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
             .borrow_mut()
             .calculate(self.step_id)
             .unwrap()
-            .to_scalar()
+            .get_scalar_f32()
             .unwrap()
     }
 
@@ -248,7 +248,7 @@ mod tests {
 
         let retval = ret.calculate().unwrap();
         assert_eq!(*retval.shape(), make_shape![]);
-        assert_eq!(retval.to_scalar(), Ok(3.));
+        assert_eq!(retval.get_scalar_f32(), Ok(3.));
     }
 
     #[test]
@@ -262,7 +262,7 @@ mod tests {
         assert_eq!(src.shape(), make_shape![]);
         assert_eq!(dest.shape(), make_shape![]);
 
-        assert_eq!(dest.calculate().unwrap().to_scalar(), Ok(-42.));
+        assert_eq!(dest.calculate().unwrap().get_scalar_f32(), Ok(-42.));
     }
 
     #[test]
@@ -278,7 +278,7 @@ mod tests {
         assert_eq!(rhs.shape(), make_shape![]);
         assert_eq!(ret.shape(), make_shape![]);
 
-        assert_eq!(ret.calculate().unwrap().to_scalar(), Ok(3.));
+        assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(3.));
     }
 
     #[test]
@@ -294,7 +294,7 @@ mod tests {
         assert_eq!(rhs.shape(), make_shape![]);
         assert_eq!(ret.shape(), make_shape![]);
 
-        assert_eq!(ret.calculate().unwrap().to_scalar(), Ok(-1.));
+        assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(-1.));
     }
 
     #[test]
@@ -310,7 +310,7 @@ mod tests {
         assert_eq!(rhs.shape(), make_shape![]);
         assert_eq!(ret.shape(), make_shape![]);
 
-        assert_eq!(ret.calculate().unwrap().to_scalar(), Ok(2.));
+        assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(2.));
     }
 
     #[test]
@@ -326,7 +326,7 @@ mod tests {
         assert_eq!(rhs.shape(), make_shape![]);
         assert_eq!(ret.shape(), make_shape![]);
 
-        assert_eq!(ret.calculate().unwrap().to_scalar(), Ok(0.5));
+        assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(0.5));
     }
 
     #[test]
@@ -344,6 +344,6 @@ mod tests {
         assert_eq!(c.shape(), make_shape![]);
         assert_eq!(y.shape(), make_shape![]);
 
-        assert_eq!(y.calculate().unwrap().to_scalar(), Ok(-5.));
+        assert_eq!(y.calculate().unwrap().get_scalar_f32(), Ok(-5.));
     }
 }

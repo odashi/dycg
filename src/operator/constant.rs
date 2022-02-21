@@ -42,13 +42,13 @@ mod tests {
     #[test]
     fn test_constant_op() {
         let hw = RefCell::new(CpuHardware::new());
-        let op = Constant::new(Array::new_scalar(&hw, 123.));
+        let op = Constant::new(Array::scalar_f32(&hw, 123.));
         assert_eq!(op.name(), "Constant");
         assert_eq!(op.input_size(), 0);
         let input_refs = vec![];
-        let expected = Array::new_scalar(&hw, 123.);
+        let expected = Array::scalar_f32(&hw, 123.);
         let observed = op.perform(&input_refs).unwrap();
         assert_eq!(observed.shape(), expected.shape());
-        assert_eq!(observed.to_scalar(), expected.to_scalar());
+        assert_eq!(observed.get_scalar_f32(), expected.get_scalar_f32());
     }
 }

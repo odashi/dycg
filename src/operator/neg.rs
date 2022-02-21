@@ -26,7 +26,7 @@ impl<'hw> Operator<'hw> for Neg {
     }
 
     fn perform(&self, inputs: &[&Array<'hw>]) -> Result<Array<'hw>> {
-        inputs[0].elementwise_neg_f32()
+        Ok(inputs[0].elementwise_neg_f32())
     }
 
     fn gradient<'op: 'g, 'g>(
@@ -56,10 +56,10 @@ mod tests {
         let op = Neg::new();
         assert_eq!(op.name(), "Neg");
         assert_eq!(op.input_size(), 1);
-        let inputs = vec![Array::new_scalar(&hw, 42.)];
-        let expected = Array::new_scalar(&hw, -42.);
+        let inputs = vec![Array::scalar_f32(&hw, 42.)];
+        let expected = Array::scalar_f32(&hw, -42.);
         let observed = op.perform(&inputs.iter().collect::<Vec<_>>()).unwrap();
         assert_eq!(observed.shape(), expected.shape());
-        assert_eq!(observed.to_scalar(), expected.to_scalar());
+        assert_eq!(observed.get_scalar_f32(), expected.get_scalar_f32());
     }
 }
