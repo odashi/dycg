@@ -29,7 +29,7 @@ impl<'hw> Fill<'hw> {
 
 impl<'hw> Operator<'hw> for Fill<'hw> {
     fn name(&self) -> String {
-        "Fill".to_string()
+        String::from("Fill")
     }
 
     fn input_size(&self) -> usize {
