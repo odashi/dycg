@@ -217,7 +217,7 @@ impl<'hw> Array<'hw> {
     /// # Arguments
     ///
     /// * `hardware`: `Hardware` object to host the value.
-    /// * `shape` - `Spahe` of the resulting `Array`.
+    /// * `shape` - `Shape` of the resulting `Array`.
     /// * `value` - Value of the elements.
     ///
     /// # Returns
