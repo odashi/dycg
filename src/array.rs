@@ -487,13 +487,6 @@ mod tests {
     }
 
     #[test]
-    fn test_set_scalar_f32_n() {
-        let hw = RefCell::new(CpuHardware::new());
-        let mut array = unsafe { Array::raw(&hw, make_shape![42]) };
-        assert!(array.set_scalar_f32(123.).is_err());
-    }
-
-    #[test]
     fn test_set_scalar_f32_1() {
         let hw = RefCell::new(CpuHardware::new());
         let mut array = unsafe { Array::raw(&hw, make_shape![1]) };
@@ -501,16 +494,23 @@ mod tests {
     }
 
     #[test]
-    fn test_get_scalar_f32_n() {
+    fn test_set_scalar_f32_n() {
         let hw = RefCell::new(CpuHardware::new());
-        let array = unsafe { Array::raw(&hw, make_shape![42]) };
-        assert!(array.get_scalar_f32().is_err());
+        let mut array = unsafe { Array::raw(&hw, make_shape![42]) };
+        assert!(array.set_scalar_f32(123.).is_err());
     }
 
     #[test]
     fn test_get_scalar_f32_1() {
         let hw = RefCell::new(CpuHardware::new());
         let array = unsafe { Array::raw(&hw, make_shape![1]) };
+        assert!(array.get_scalar_f32().is_err());
+    }
+
+    #[test]
+    fn test_get_scalar_f32_n() {
+        let hw = RefCell::new(CpuHardware::new());
+        let array = unsafe { Array::raw(&hw, make_shape![42]) };
         assert!(array.get_scalar_f32().is_err());
     }
 
