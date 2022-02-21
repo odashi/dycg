@@ -528,6 +528,17 @@ mod tests {
     }
 
     #[test]
+    fn test_set_values_f32_0() {
+        let hw = RefCell::new(CpuHardware::new());
+        let mut array = unsafe { Array::raw(&hw, make_shape![0]) };
+        array.set_values_f32(&[]).unwrap();
+        assert_eq!(array.get_values_f32(), vec![]);
+
+        assert!(array.set_values_f32(&[111.]).is_err());
+        assert!(array.set_values_f32(&[111., 222.]).is_err());
+    }
+
+    #[test]
     fn test_set_values_f32_n() {
         let hw = RefCell::new(CpuHardware::new());
         let mut array = unsafe { Array::raw(&hw, make_shape![3]) };
@@ -538,17 +549,6 @@ mod tests {
         assert!(array.set_values_f32(&[111.]).is_err());
         assert!(array.set_values_f32(&[111., 222.]).is_err());
         assert!(array.set_values_f32(&[111., 222., 333., 444.]).is_err());
-    }
-
-    #[test]
-    fn test_set_values_f32_0() {
-        let hw = RefCell::new(CpuHardware::new());
-        let mut array = unsafe { Array::raw(&hw, make_shape![0]) };
-        array.set_values_f32(&[]).unwrap();
-        assert_eq!(array.get_values_f32(), vec![]);
-
-        assert!(array.set_values_f32(&[111.]).is_err());
-        assert!(array.set_values_f32(&[111., 222.]).is_err());
     }
 
     #[test]
@@ -577,6 +577,22 @@ mod tests {
     }
 
     #[test]
+    fn test_constant_f32_0() {
+        let hw = RefCell::new(CpuHardware::new());
+        let array = Array::constant_f32(&hw, make_shape![0], &[]).unwrap();
+        assert_eq!(array.shape, make_shape![0]);
+        assert!(array.get_scalar_f32().is_err());
+        assert_eq!(array.get_values_f32(), vec![]);
+    }
+
+    #[test]
+    fn test_constant_f32_0_invalid() {
+        let hw = RefCell::new(CpuHardware::new());
+        assert!(Array::constant_f32(&hw, make_shape![0], &[111.]).is_err());
+        assert!(Array::constant_f32(&hw, make_shape![0], &[111., 222.]).is_err());
+    }
+
+    #[test]
     fn test_constant_f32_n() {
         let hw = RefCell::new(CpuHardware::new());
         let array = Array::constant_f32(&hw, make_shape![3], &[123., 456., 789.]).unwrap();
@@ -595,22 +611,6 @@ mod tests {
     }
 
     #[test]
-    fn test_constant_f32_0() {
-        let hw = RefCell::new(CpuHardware::new());
-        let array = Array::constant_f32(&hw, make_shape![0], &[]).unwrap();
-        assert_eq!(array.shape, make_shape![0]);
-        assert!(array.get_scalar_f32().is_err());
-        assert_eq!(array.get_values_f32(), vec![]);
-    }
-
-    #[test]
-    fn test_constant_f32_0_invalid() {
-        let hw = RefCell::new(CpuHardware::new());
-        assert!(Array::constant_f32(&hw, make_shape![0], &[111.]).is_err());
-        assert!(Array::constant_f32(&hw, make_shape![0], &[111., 222.]).is_err());
-    }
-
-    #[test]
     fn test_fill_f32_scalar() {
         let hw = RefCell::new(CpuHardware::new());
         let array = Array::fill_f32(&hw, make_shape![], 123.);
@@ -620,21 +620,21 @@ mod tests {
     }
 
     #[test]
-    fn test_fill_f32_n() {
-        let hw = RefCell::new(CpuHardware::new());
-        let array = Array::fill_f32(&hw, make_shape![3], 123.);
-        assert_eq!(array.shape, make_shape![3]);
-        assert!(array.get_scalar_f32().is_err());
-        assert_eq!(array.get_values_f32(), vec![123., 123., 123.]);
-    }
-
-    #[test]
     fn test_fill_f32_0() {
         let hw = RefCell::new(CpuHardware::new());
         let array = Array::fill_f32(&hw, make_shape![0], 123.);
         assert_eq!(array.shape, make_shape![0]);
         assert!(array.get_scalar_f32().is_err());
         assert_eq!(array.get_values_f32(), vec![]);
+    }
+
+    #[test]
+    fn test_fill_f32_n() {
+        let hw = RefCell::new(CpuHardware::new());
+        let array = Array::fill_f32(&hw, make_shape![3], 123.);
+        assert_eq!(array.shape, make_shape![3]);
+        assert!(array.get_scalar_f32().is_err());
+        assert_eq!(array.get_values_f32(), vec![123., 123., 123.]);
     }
 
     #[test]
@@ -649,17 +649,6 @@ mod tests {
     }
 
     #[test]
-    fn test_fill_colocated_f32_n() {
-        let hw = RefCell::new(CpuHardware::new());
-        let other = unsafe { Array::raw(&hw, make_shape![]) };
-        let array = Array::fill_colocated_f32(&other, make_shape![3], 123.);
-        assert_eq!(array.shape, make_shape![3]);
-        assert!(ptr::eq(array.buffer.hardware(), &hw));
-        assert!(array.get_scalar_f32().is_err());
-        assert_eq!(array.get_values_f32(), vec![123., 123., 123.]);
-    }
-
-    #[test]
     fn test_fill_colocated_f32_0() {
         let hw = RefCell::new(CpuHardware::new());
         let other = unsafe { Array::raw(&hw, make_shape![]) };
@@ -668,6 +657,17 @@ mod tests {
         assert!(ptr::eq(array.buffer.hardware(), &hw));
         assert!(array.get_scalar_f32().is_err());
         assert_eq!(array.get_values_f32(), vec![]);
+    }
+
+    #[test]
+    fn test_fill_colocated_f32_n() {
+        let hw = RefCell::new(CpuHardware::new());
+        let other = unsafe { Array::raw(&hw, make_shape![]) };
+        let array = Array::fill_colocated_f32(&other, make_shape![3], 123.);
+        assert_eq!(array.shape, make_shape![3]);
+        assert!(ptr::eq(array.buffer.hardware(), &hw));
+        assert!(array.get_scalar_f32().is_err());
+        assert_eq!(array.get_values_f32(), vec![123., 123., 123.]);
     }
 
     #[test]
