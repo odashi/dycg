@@ -4,6 +4,7 @@ use crate::graph::Graph;
 use crate::hardware::Hardware;
 use crate::operator;
 use crate::result::Result;
+use crate::shape::Shape;
 use std::cell::RefCell;
 use std::fmt;
 use std::ptr;
@@ -61,6 +62,16 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
                     "Attempted calculation between Nodes on different Graph.".to_string(),
                 )
             })
+    }
+
+    pub fn shape(&self) -> Shape {
+        self.graph
+            .borrow()
+            .get_step(self.step_id)
+            .unwrap()
+            .output
+            .shape()
+            .clone()
     }
 
     pub fn calculate(&self) -> Result<Array<'hw>> {
@@ -219,6 +230,10 @@ mod tests {
         let rhs = Node::from_scalar(&hw, &g, 2.);
         let ret = lhs + rhs;
 
+        assert_eq!(lhs.shape(), make_shape![]);
+        assert_eq!(rhs.shape(), make_shape![]);
+        assert_eq!(ret.shape(), make_shape![]);
+
         {
             let g = g.borrow();
             assert_eq!(g.num_steps(), 3);
@@ -243,6 +258,10 @@ mod tests {
 
         let src = Node::from_scalar(&hw, &g, 42.);
         let dest = -src;
+
+        assert_eq!(src.shape(), make_shape![]);
+        assert_eq!(dest.shape(), make_shape![]);
+
         assert_eq!(dest.calculate().unwrap().to_scalar(), Ok(-42.));
     }
 
@@ -254,6 +273,11 @@ mod tests {
         let lhs = Node::from_scalar(&hw, &g, 1.);
         let rhs = Node::from_scalar(&hw, &g, 2.);
         let ret = lhs + rhs;
+
+        assert_eq!(lhs.shape(), make_shape![]);
+        assert_eq!(rhs.shape(), make_shape![]);
+        assert_eq!(ret.shape(), make_shape![]);
+
         assert_eq!(ret.calculate().unwrap().to_scalar(), Ok(3.));
     }
 
@@ -265,6 +289,11 @@ mod tests {
         let lhs = Node::from_scalar(&hw, &g, 1.);
         let rhs = Node::from_scalar(&hw, &g, 2.);
         let ret = lhs - rhs;
+
+        assert_eq!(lhs.shape(), make_shape![]);
+        assert_eq!(rhs.shape(), make_shape![]);
+        assert_eq!(ret.shape(), make_shape![]);
+
         assert_eq!(ret.calculate().unwrap().to_scalar(), Ok(-1.));
     }
 
@@ -276,6 +305,11 @@ mod tests {
         let lhs = Node::from_scalar(&hw, &g, 1.);
         let rhs = Node::from_scalar(&hw, &g, 2.);
         let ret = lhs * rhs;
+
+        assert_eq!(lhs.shape(), make_shape![]);
+        assert_eq!(rhs.shape(), make_shape![]);
+        assert_eq!(ret.shape(), make_shape![]);
+
         assert_eq!(ret.calculate().unwrap().to_scalar(), Ok(2.));
     }
 
@@ -287,6 +321,11 @@ mod tests {
         let lhs = Node::from_scalar(&hw, &g, 1.);
         let rhs = Node::from_scalar(&hw, &g, 2.);
         let ret = lhs / rhs;
+
+        assert_eq!(lhs.shape(), make_shape![]);
+        assert_eq!(rhs.shape(), make_shape![]);
+        assert_eq!(ret.shape(), make_shape![]);
+
         assert_eq!(ret.calculate().unwrap().to_scalar(), Ok(0.5));
     }
 
@@ -299,6 +338,12 @@ mod tests {
         let b = Node::from_scalar(&hw, &g, 2.);
         let c = Node::from_scalar(&hw, &g, 3.);
         let y = a + -b * c;
+
+        assert_eq!(a.shape(), make_shape![]);
+        assert_eq!(b.shape(), make_shape![]);
+        assert_eq!(c.shape(), make_shape![]);
+        assert_eq!(y.shape(), make_shape![]);
+
         assert_eq!(y.calculate().unwrap().to_scalar(), Ok(-5.));
     }
 }
