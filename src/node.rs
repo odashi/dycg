@@ -227,16 +227,17 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Div for Node<'hw, 'op, 'g> {
 /// # Arguments
 ///
 /// * `y` - `Node` representing the output value.
-/// * `x` - `Node` representing the input value.
+/// * `x` - List of `Node`s representing the input value.
 ///
 /// # Returns
 ///
-/// * `Ok(Node)` - A new `Node` representing the derivative  dy/dx.
+/// * `Ok(Vec<Node>)` - New `Node`s representing the derivative dy/dx. The order of elements
+///   corresponds to that of `x`.
 /// * `Err(Error)` - Some errors occurred during the process.
 pub fn grad<'hw, 'op, 'g>(
     _y: Node<'hw, 'op, 'g>,
-    _x: Node<'hw, 'op, 'g>,
-) -> Result<Node<'hw, 'op, 'g>> {
+    _x: &[Node<'hw, 'op, 'g>],
+) -> Result<Vec<Node<'hw, 'op, 'g>>> {
     Err(Error::NotSupported("Not implemented.".to_string()))
 }
 
