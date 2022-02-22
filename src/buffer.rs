@@ -10,7 +10,7 @@ use std::ptr;
 /// At `drop()` the owned handle is released using associated `Hardware`.
 ///
 /// This object can only be alive during the lifetime of the specified hardware.
-pub(crate) struct Buffer<'hw> {
+pub struct Buffer<'hw> {
     /// Reference to the hardware that `pointer` manages.
     hardware: &'hw RefCell<dyn Hardware>,
 
@@ -38,7 +38,7 @@ impl<'hw> Buffer<'hw> {
     /// This function does not initialize the data on the allocated memory, and users are
     /// responsible to initialize the memory immediately by themselves.
     /// Using this object without explicit initialization causes undefined behavior.
-    pub(crate) unsafe fn raw(hardware: &'hw RefCell<dyn Hardware>, size: usize) -> Self {
+    pub unsafe fn raw(hardware: &'hw RefCell<dyn Hardware>, size: usize) -> Self {
         Self {
             hardware,
             size,
@@ -62,7 +62,7 @@ impl<'hw> Buffer<'hw> {
     /// This function does not initialize the data on the allocated memory, and users are
     /// responsible to initialize the memory immediately by themselves.
     /// Using this object without explicit initialization causes undefined behavior.
-    pub(crate) unsafe fn raw_colocated(other: &Self, size: usize) -> Self {
+    pub unsafe fn raw_colocated(other: &Self, size: usize) -> Self {
         Self::raw(other.hardware, size)
     }
 
@@ -71,8 +71,17 @@ impl<'hw> Buffer<'hw> {
     /// # Returns
     ///
     /// A Reference to the wrapped `Hardware` object.
-    pub(crate) fn hardware(&self) -> &'hw RefCell<dyn Hardware> {
+    pub fn hardware(&self) -> &'hw RefCell<dyn Hardware> {
         self.hardware
+    }
+
+    /// Returns the size of the allocated memory.
+    ///
+    /// # Returns
+    ///
+    /// The size of the allocated memory.
+    pub fn size(&self) -> usize {
+        self.size
     }
 
     /// Returns the const handle owned by this buffer.
@@ -80,7 +89,13 @@ impl<'hw> Buffer<'hw> {
     /// # Returns
     ///
     /// Owned handle as a const pointer.
-    pub(crate) unsafe fn as_handle(&self) -> *const u8 {
+    ///
+    /// # Safety
+    ///
+    /// This function returns a raw pointer of the inner memory or a handle of the associated
+    /// hardware-specific object.
+    /// The returned value can not be used without knowing the associated hardware.
+    pub unsafe fn as_handle(&self) -> *const u8 {
         self.handle
     }
 
@@ -89,7 +104,13 @@ impl<'hw> Buffer<'hw> {
     /// # Returns
     ///
     /// Owned handle as a mutable pointer.
-    pub(crate) unsafe fn as_mut_handle(&mut self) -> *mut u8 {
+    ///
+    /// # Safety
+    ///
+    /// This function returns a raw pointer of the inner memory or a handle of the associated
+    /// device-specific object.
+    /// The returned value can not be used without knowing the associated hardware.
+    pub unsafe fn as_mut_handle(&mut self) -> *mut u8 {
         self.handle
     }
 
@@ -103,7 +124,7 @@ impl<'hw> Buffer<'hw> {
     ///
     /// * `true` - The both buffers are colocated on the same hardware.
     /// * `false` - Otherwise.
-    pub(crate) fn is_colocated(&self, other: &Self) -> bool {
+    pub fn is_colocated(&self, other: &Self) -> bool {
         ptr::eq(self.hardware, other.hardware)
     }
 
@@ -117,7 +138,7 @@ impl<'hw> Buffer<'hw> {
     ///
     /// * `Ok(())` - The both buffers are colocated on the same hardware.
     /// * `Err(Error)` - Otherwise.
-    pub(crate) fn check_colocated(&self, other: &Self) -> Result<()> {
+    pub fn check_colocated(&self, other: &Self) -> Result<()> {
         self.is_colocated(other).then(|| ()).ok_or_else(|| {
             Error::InvalidHardware(format!(
                 "Buffers are not colocated on the same hardware. self: {:p}, other: {:p}",
@@ -207,7 +228,7 @@ mod tests {
         let hw = RefCell::new(CpuHardware::new());
         unsafe {
             let buf = Buffer::raw(&hw, 123);
-            assert_eq!(buf.size, 123);
+            assert_eq!(buf.size(), 123);
         }
     }
 

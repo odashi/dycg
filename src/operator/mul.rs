@@ -56,10 +56,10 @@ mod tests {
         let op = Mul::new();
         assert_eq!(op.name(), "Mul");
         assert_eq!(op.input_size(), 2);
-        let inputs = vec![Array::new_scalar(&hw, 1.), Array::new_scalar(&hw, 2.)];
-        let expected = Array::new_scalar(&hw, 2.);
+        let inputs = vec![Array::scalar_f32(&hw, 1.), Array::scalar_f32(&hw, 2.)];
+        let expected = Array::scalar_f32(&hw, 2.);
         let observed = op.perform(&inputs.iter().collect::<Vec<_>>()).unwrap();
         assert_eq!(observed.shape(), expected.shape());
-        assert_eq!(observed.to_scalar(), expected.to_scalar());
+        assert_eq!(observed.get_scalar_f32(), expected.get_scalar_f32());
     }
 }
