@@ -71,10 +71,17 @@ impl<'hw> Array<'hw> {
     /// # Returns
     ///
     /// Reference to the `Shape` object.
-    ///
-    /// Shape of the array.
     pub fn shape(&self) -> &Shape {
         &self.shape
+    }
+
+    /// Returns the hardware of the array.
+    ///
+    /// # Returns
+    ///
+    /// Reference to the `Hardware` object.
+    pub fn hardware(&self) -> &'hw RefCell<dyn Hardware> {
+        self.buffer.hardware()
     }
 
     /// Sets a scalar value to this array.
@@ -90,7 +97,7 @@ impl<'hw> Array<'hw> {
     pub fn set_scalar_f32(&mut self, value: f32) -> Result<()> {
         self.shape.check_is_scalar()?;
         unsafe {
-            self.buffer.hardware().borrow_mut().copy_host_to_hardware(
+            self.hardware().borrow_mut().copy_host_to_hardware(
                 (&value as *const f32) as *const u8,
                 self.buffer.as_mut_handle(),
                 mem::size_of::<f32>(),
@@ -113,7 +120,7 @@ impl<'hw> Array<'hw> {
         self.shape.check_is_scalar()?;
         let mut value = 0.;
         unsafe {
-            self.buffer.hardware().borrow_mut().copy_hardware_to_host(
+            self.hardware().borrow_mut().copy_hardware_to_host(
                 self.buffer.as_handle(),
                 (&mut value as *mut f32) as *mut u8,
                 mem::size_of::<f32>(),
@@ -144,7 +151,7 @@ impl<'hw> Array<'hw> {
         }
 
         unsafe {
-            self.buffer.hardware().borrow_mut().copy_host_to_hardware(
+            self.hardware().borrow_mut().copy_host_to_hardware(
                 values.as_ptr() as *const u8,
                 self.buffer.as_mut_handle(),
                 self.shape.num_elements() * mem::size_of::<f32>(),
@@ -163,7 +170,7 @@ impl<'hw> Array<'hw> {
         let num_elements = self.shape.num_elements();
         let mut values = Vec::<f32>::with_capacity(num_elements);
         unsafe {
-            self.buffer.hardware().borrow_mut().copy_hardware_to_host(
+            self.hardware().borrow_mut().copy_hardware_to_host(
                 self.buffer.as_handle(),
                 values.as_mut_ptr() as *mut u8,
                 num_elements * mem::size_of::<f32>(),
@@ -249,7 +256,7 @@ impl<'hw> Array<'hw> {
     /// * `Ok(Array)` - A new `Array` object.
     /// * `Err(Error)` - Some error occurred during the process.
     pub fn fill_colocated_f32(other: &Self, shape: Shape, value: f32) -> Self {
-        Self::fill_f32(other.buffer.hardware(), shape, value)
+        Self::fill_f32(other.hardware(), shape, value)
     }
 
     /// Performs elementwise negation operation and returns a new `Array` of resulting
@@ -264,7 +271,7 @@ impl<'hw> Array<'hw> {
     pub fn elementwise_neg_f32(&self) -> Self {
         unsafe {
             let mut output = Self::raw_colocated(self, self.shape.clone());
-            output.buffer.hardware().borrow_mut().elementwise_neg_f32(
+            output.hardware().borrow_mut().elementwise_neg_f32(
                 self.buffer.as_handle(),
                 output.buffer.as_mut_handle(),
                 self.shape.num_elements(),
@@ -291,7 +298,7 @@ impl<'hw> Array<'hw> {
         let num_elements = output_shape.num_elements();
         unsafe {
             let mut output = Self::raw_colocated(self, output_shape);
-            output.buffer.hardware().borrow_mut().elementwise_add_f32(
+            output.hardware().borrow_mut().elementwise_add_f32(
                 self.buffer.as_handle(),
                 other.buffer.as_handle(),
                 output.buffer.as_mut_handle(),
@@ -319,7 +326,7 @@ impl<'hw> Array<'hw> {
         let num_elements = output_shape.num_elements();
         unsafe {
             let mut output = Self::raw_colocated(self, output_shape);
-            output.buffer.hardware().borrow_mut().elementwise_sub_f32(
+            output.hardware().borrow_mut().elementwise_sub_f32(
                 self.buffer.as_handle(),
                 other.buffer.as_handle(),
                 output.buffer.as_mut_handle(),
@@ -347,7 +354,7 @@ impl<'hw> Array<'hw> {
         let num_elements = output_shape.num_elements();
         unsafe {
             let mut output = Self::raw_colocated(self, output_shape);
-            output.buffer.hardware().borrow_mut().elementwise_mul_f32(
+            output.hardware().borrow_mut().elementwise_mul_f32(
                 self.buffer.as_handle(),
                 other.buffer.as_handle(),
                 output.buffer.as_mut_handle(),
@@ -375,7 +382,7 @@ impl<'hw> Array<'hw> {
         let num_elements = output_shape.num_elements();
         unsafe {
             let mut output = Self::raw_colocated(self, output_shape);
-            output.buffer.hardware().borrow_mut().elementwise_div_f32(
+            output.hardware().borrow_mut().elementwise_div_f32(
                 self.buffer.as_handle(),
                 other.buffer.as_handle(),
                 output.buffer.as_mut_handle(),
