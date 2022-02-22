@@ -195,7 +195,7 @@ impl<'hw> Array<'hw> {
     ///
     /// * `hardware`: `Hardware` object to host the value.
     /// * `shape`: `Shape` of the new `Array`.
-    /// * `value`: Values copied to the underlying buffer. The number of values must be the same as
+    /// * `values`: Values to be copied to the underlying buffer. The number of values must be the same as
     ///   the size of the underlying buffer.
     ///
     /// # Returns
@@ -217,7 +217,7 @@ impl<'hw> Array<'hw> {
     /// # Arguments
     ///
     /// * `hardware`: `Hardware` object to host the value.
-    /// * `shape` - `Spahe` of the resulting `Array`.
+    /// * `shape` - `Shape` of the resulting `Array`.
     /// * `value` - Value of the elements.
     ///
     /// # Returns
