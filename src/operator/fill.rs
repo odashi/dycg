@@ -40,6 +40,13 @@ impl<'hw> Operator<'hw> for Fill<'hw> {
         Ok(self.shape.clone())
     }
 
+    fn perform_hardware(
+        &self,
+        _inputs: &[&'hw RefCell<dyn Hardware>],
+    ) -> Result<&'hw RefCell<dyn Hardware>> {
+        Ok(self.hardware)
+    }
+
     fn perform(&self, _inputs: &[&Array<'hw>]) -> Result<Array<'hw>> {
         Ok(Array::fill_f32(
             self.hardware,
