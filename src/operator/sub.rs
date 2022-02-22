@@ -54,9 +54,10 @@ mod tests {
     fn test_perform() {
         let hw = RefCell::new(CpuHardware::new());
         let op = Sub::new();
-        let inputs = vec![Array::scalar_f32(&hw, 1.), Array::scalar_f32(&hw, 2.)];
+        let lhs = Array::scalar_f32(&hw, 1.);
+        let rhs = Array::scalar_f32(&hw, 2.);
         let expected = Array::scalar_f32(&hw, -1.);
-        let observed = op.perform(&inputs.iter().collect::<Vec<_>>()).unwrap();
+        let observed = op.perform(&[&lhs, &rhs]).unwrap();
         assert_eq!(observed.shape(), expected.shape());
         assert_eq!(observed.get_scalar_f32(), expected.get_scalar_f32());
     }

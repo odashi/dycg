@@ -69,9 +69,8 @@ mod tests {
     fn test_perform_scalar() {
         let hw = RefCell::new(CpuHardware::new());
         let op = Fill::new(&hw, make_shape![], 123.);
-        let input_refs = [];
         let expected = Array::fill_f32(&hw, make_shape![], 123.);
-        let observed = op.perform(&input_refs).unwrap();
+        let observed = op.perform(&[]).unwrap();
         assert_eq!(observed.shape(), expected.shape());
         assert_eq!(observed.get_scalar_f32(), expected.get_scalar_f32());
     }
@@ -80,9 +79,8 @@ mod tests {
     fn test_perform_0() {
         let hw = RefCell::new(CpuHardware::new());
         let op = Fill::new(&hw, make_shape![0], 123.);
-        let input_refs = [];
         let expected = Array::fill_f32(&hw, make_shape![0], 123.);
-        let observed = op.perform(&input_refs).unwrap();
+        let observed = op.perform(&[]).unwrap();
         assert_eq!(observed.shape(), expected.shape());
         assert_eq!(observed.get_values_f32(), expected.get_values_f32());
     }
@@ -91,9 +89,8 @@ mod tests {
     fn test_perform_n() {
         let hw = RefCell::new(CpuHardware::new());
         let op = Fill::new(&hw, make_shape![3], 123.);
-        let input_refs = [];
         let expected = Array::fill_f32(&hw, make_shape![3], 123.);
-        let observed = op.perform(&input_refs).unwrap();
+        let observed = op.perform(&[]).unwrap();
         assert_eq!(observed.shape(), expected.shape());
         assert_eq!(observed.get_values_f32(), expected.get_values_f32());
     }

@@ -52,9 +52,8 @@ mod tests {
     fn test_perform() {
         let hw = RefCell::new(CpuHardware::new());
         let op = Constant::new(Array::scalar_f32(&hw, 123.));
-        let input_refs = vec![];
         let expected = Array::scalar_f32(&hw, 123.);
-        let observed = op.perform(&input_refs).unwrap();
+        let observed = op.perform(&[]).unwrap();
         assert_eq!(observed.shape(), expected.shape());
         assert_eq!(observed.get_scalar_f32(), expected.get_scalar_f32());
     }
