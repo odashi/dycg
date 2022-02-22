@@ -44,11 +44,16 @@ mod tests {
     use crate::operator::sub::*;
 
     #[test]
-    fn test_sub_op() {
-        let hw = RefCell::new(CpuHardware::new());
+    fn test_properties() {
         let op = Sub::new();
         assert_eq!(op.name(), "Sub");
         assert_eq!(op.input_size(), 2);
+    }
+
+    #[test]
+    fn test_perform() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Sub::new();
         let inputs = vec![Array::scalar_f32(&hw, 1.), Array::scalar_f32(&hw, 2.)];
         let expected = Array::scalar_f32(&hw, -1.);
         let observed = op.perform(&inputs.iter().collect::<Vec<_>>()).unwrap();

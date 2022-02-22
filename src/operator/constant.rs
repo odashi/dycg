@@ -41,11 +41,17 @@ mod tests {
     use crate::operator::constant::*;
 
     #[test]
-    fn test_constant_op() {
+    fn test_properties() {
         let hw = RefCell::new(CpuHardware::new());
         let op = Constant::new(Array::scalar_f32(&hw, 123.));
         assert_eq!(op.name(), "Constant");
         assert_eq!(op.input_size(), 0);
+    }
+
+    #[test]
+    fn test_perform() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Constant::new(Array::scalar_f32(&hw, 123.));
         let input_refs = vec![];
         let expected = Array::scalar_f32(&hw, 123.);
         let observed = op.perform(&input_refs).unwrap();

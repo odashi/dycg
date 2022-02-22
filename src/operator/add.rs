@@ -44,11 +44,16 @@ mod tests {
     use crate::operator::add::*;
 
     #[test]
-    fn test_add_op() {
-        let hw = RefCell::new(CpuHardware::new());
+    fn test_properties() {
         let op = Add::new();
         assert_eq!(op.name(), "Add");
         assert_eq!(op.input_size(), 2);
+    }
+
+    #[test]
+    fn test_perform() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Add::new();
         let inputs = vec![Array::scalar_f32(&hw, 1.), Array::scalar_f32(&hw, 2.)];
         let expected = Array::scalar_f32(&hw, 3.);
         let observed = op.perform(&inputs.iter().collect::<Vec<_>>()).unwrap();

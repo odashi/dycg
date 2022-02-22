@@ -44,11 +44,16 @@ mod tests {
     use crate::operator::neg::*;
 
     #[test]
-    fn test_neg_op() {
-        let hw = RefCell::new(CpuHardware::new());
+    fn test_properties() {
         let op = Neg::new();
         assert_eq!(op.name(), "Neg");
         assert_eq!(op.input_size(), 1);
+    }
+
+    #[test]
+    fn test_perform() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Neg::new();
         let inputs = vec![Array::scalar_f32(&hw, 42.)];
         let expected = Array::scalar_f32(&hw, -42.);
         let observed = op.perform(&inputs.iter().collect::<Vec<_>>()).unwrap();

@@ -45,11 +45,16 @@ mod tests {
     use crate::operator::div::*;
 
     #[test]
-    fn test_div_op() {
-        let hw = RefCell::new(CpuHardware::new());
+    fn test_properties() {
         let op = Div::new();
         assert_eq!(op.name(), "Div");
         assert_eq!(op.input_size(), 2);
+    }
+
+    #[test]
+    fn test_perform() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Div::new();
         let inputs = vec![Array::scalar_f32(&hw, 1.), Array::scalar_f32(&hw, 2.)];
         let expected = Array::scalar_f32(&hw, 0.5);
         let observed = op.perform(&inputs.iter().collect::<Vec<_>>()).unwrap();
