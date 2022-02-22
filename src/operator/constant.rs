@@ -38,6 +38,7 @@ impl<'hw> Operator<'hw> for Constant<'hw> {
 #[cfg(test)]
 mod tests {
     use crate::hardware::cpu::CpuHardware;
+    use crate::make_shape;
     use crate::operator::constant::*;
 
     #[test]
@@ -46,6 +47,34 @@ mod tests {
         let op = Constant::new(Array::scalar_f32(&hw, 123.));
         assert_eq!(op.name(), "Constant");
         assert_eq!(op.input_size(), 0);
+    }
+
+    #[test]
+    fn test_perform_shape_scalar() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Constant::new(Array::scalar_f32(&hw, 123.));
+        assert_eq!(op.perform_shape(&[]), Ok(make_shape![]));
+    }
+
+    #[test]
+    fn test_perform_shape_0() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Constant::new(Array::fill_f32(&hw, make_shape![0], 123.));
+        assert_eq!(op.perform_shape(&[]), Ok(make_shape![0]));
+    }
+
+    #[test]
+    fn test_perform_shape_n() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Constant::new(Array::fill_f32(&hw, make_shape![3], 123.));
+        assert_eq!(op.perform_shape(&[]), Ok(make_shape![3]));
+    }
+
+    #[test]
+    fn test_perform_hardware() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Constant::new(Array::scalar_f32(&hw, 123.));
+        assert!(ptr::eq(op.perform_hardware(&[]).unwrap(), &hw));
     }
 
     #[test]

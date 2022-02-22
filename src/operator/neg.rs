@@ -41,6 +41,7 @@ impl<'hw> Operator<'hw> for Neg {
 #[cfg(test)]
 mod tests {
     use crate::hardware::cpu::CpuHardware;
+    use crate::make_shape;
     use crate::operator::neg::*;
 
     #[test]
@@ -48,6 +49,24 @@ mod tests {
         let op = Neg::new();
         assert_eq!(op.name(), "Neg");
         assert_eq!(op.input_size(), 1);
+    }
+
+    #[rustfmt::skip]
+    #[test]
+    fn test_perform_shape() {
+        let op = Neg::new();
+        
+        assert_eq!(op.perform_shape(&[&make_shape![]]), Ok(make_shape![]));
+        assert_eq!(op.perform_shape(&[&make_shape![0]]), Ok(make_shape![0]));
+        assert_eq!(op.perform_shape(&[&make_shape![3]]), Ok(make_shape![3]));
+    }
+
+    #[test]
+    fn test_perform_hardware() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Neg::new();
+
+        assert!(ptr::eq(op.perform_hardware(&[&hw]).unwrap(), &hw));
     }
 
     #[test]
