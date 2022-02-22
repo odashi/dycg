@@ -26,10 +26,14 @@ pub(crate) trait Operator<'hw> {
     }
 }
 
+// Nullary operators
 pub(crate) mod constant;
+pub(crate) mod fill;
 
+// Unary operators
 pub(crate) mod neg;
 
+// Binary operators
 pub(crate) mod add;
 pub(crate) mod div;
 pub(crate) mod mul;

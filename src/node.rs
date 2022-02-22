@@ -77,6 +77,32 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
     pub fn calculate(&self) -> Result<Array<'hw>> {
         self.graph.borrow_mut().calculate(self.step_id)
     }
+
+    /// Registers `Fill` operation to the graph.
+    ///
+    /// # Arguments
+    ///
+    /// * `hardware` - `Hardware` object to hold the value.
+    /// * `graph` - `Graph` object to register the operation.
+    /// * `shape` - `Shape` of the output array.
+    /// * `value` - Value of each element in the output array.
+    pub fn fill(
+        hardware: &'hw RefCell<dyn Hardware>,
+        graph: &'g RefCell<Graph<'hw, 'op>>,
+        shape: Shape,
+        value: f32,
+    ) -> Self {
+        Self::new(
+            graph,
+            graph
+                .borrow_mut()
+                .add_step(
+                    Box::new(operator::fill::Fill::new(hardware, shape, value)),
+                    vec![],
+                )
+                .unwrap(),
+        )
+    }
 }
 
 impl<'hw: 'op, 'op: 'g, 'g> fmt::Display for Node<'hw, 'op, 'g> {
@@ -327,6 +353,36 @@ mod tests {
         assert_eq!(ret.shape(), make_shape![]);
 
         assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(0.5));
+    }
+
+    #[test]
+    fn test_fill_scalar() {
+        let hw = RefCell::new(CpuHardware::new());
+        let g = RefCell::new(Graph::new());
+        let ret = Node::fill(&hw, &g, make_shape![], 123.);
+        assert_eq!(ret.shape(), make_shape![]);
+        assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(123.));
+    }
+
+    #[test]
+    fn test_fill_0() {
+        let hw = RefCell::new(CpuHardware::new());
+        let g = RefCell::new(Graph::new());
+        let ret = Node::fill(&hw, &g, make_shape![0], 123.);
+        assert_eq!(ret.shape(), make_shape![0]);
+        assert_eq!(ret.calculate().unwrap().get_values_f32(), vec![]);
+    }
+
+    #[test]
+    fn test_fill_n() {
+        let hw = RefCell::new(CpuHardware::new());
+        let g = RefCell::new(Graph::new());
+        let ret = Node::fill(&hw, &g, make_shape![3], 123.);
+        assert_eq!(ret.shape(), make_shape![3]);
+        assert_eq!(
+            ret.calculate().unwrap().get_values_f32(),
+            vec![123., 123., 123.]
+        );
     }
 
     #[test]
