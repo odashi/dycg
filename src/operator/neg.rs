@@ -1,8 +1,4 @@
-use crate::array::Array;
-use crate::node::Node;
-use crate::operator::Operator;
-use crate::result::Result;
-use crate::shape::Shape;
+use crate::operator::*;
 
 pub(crate) struct Neg;
 
@@ -44,11 +40,8 @@ impl<'hw> Operator<'hw> for Neg {
 
 #[cfg(test)]
 mod tests {
-    use crate::array::Array;
     use crate::hardware::cpu::CpuHardware;
-    use crate::operator::neg::Neg;
-    use crate::operator::Operator;
-    use std::cell::RefCell;
+    use crate::operator::neg::*;
 
     #[test]
     fn test_neg_op() {

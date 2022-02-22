@@ -37,11 +37,8 @@ impl<'hw> Operator<'hw> for Constant<'hw> {
 
 #[cfg(test)]
 mod tests {
-    use crate::array::Array;
     use crate::hardware::cpu::CpuHardware;
-    use crate::operator::constant::Constant;
-    use crate::operator::Operator;
-    use std::cell::RefCell;
+    use crate::operator::constant::*;
 
     #[test]
     fn test_constant_op() {

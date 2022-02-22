@@ -1,8 +1,4 @@
-use crate::array::Array;
-use crate::node::Node;
-use crate::operator::Operator;
-use crate::result::Result;
-use crate::shape::Shape;
+use crate::operator::*;
 
 pub(crate) struct Div;
 
@@ -45,11 +41,8 @@ impl<'hw> Operator<'hw> for Div {
 
 #[cfg(test)]
 mod tests {
-    use crate::array::Array;
     use crate::hardware::cpu::CpuHardware;
-    use crate::operator::div::Div;
-    use crate::operator::Operator;
-    use std::cell::RefCell;
+    use crate::operator::div::*;
 
     #[test]
     fn test_div_op() {

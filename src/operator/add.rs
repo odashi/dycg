@@ -1,8 +1,4 @@
-use crate::array::Array;
-use crate::node::Node;
-use crate::operator::Operator;
-use crate::result::Result;
-use crate::shape::Shape;
+use crate::operator::*;
 
 pub(crate) struct Add;
 
@@ -44,11 +40,8 @@ impl<'hw> Operator<'hw> for Add {
 
 #[cfg(test)]
 mod tests {
-    use crate::array::Array;
     use crate::hardware::cpu::CpuHardware;
-    use crate::operator::add::Add;
-    use crate::operator::Operator;
-    use std::cell::RefCell;
+    use crate::operator::add::*;
 
     #[test]
     fn test_add_op() {

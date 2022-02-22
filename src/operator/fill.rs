@@ -1,9 +1,4 @@
-use crate::array::Array;
-use crate::hardware::Hardware;
-use crate::operator::Operator;
-use crate::result::Result;
-use crate::shape::Shape;
-use std::cell::RefCell;
+use crate::operator::*;
 
 /// Fill operator: creates an array with specific hardware/shape, filled by a single value.
 pub(crate) struct Fill<'hw> {
@@ -58,12 +53,9 @@ impl<'hw> Operator<'hw> for Fill<'hw> {
 
 #[cfg(test)]
 mod tests {
-    use crate::array::Array;
     use crate::hardware::cpu::CpuHardware;
     use crate::make_shape;
-    use crate::operator::fill::Fill;
-    use crate::operator::Operator;
-    use std::cell::RefCell;
+    use crate::operator::fill::*;
 
     #[test]
     fn test_op_scalar() {
