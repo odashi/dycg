@@ -92,9 +92,9 @@ impl<'hw> Buffer<'hw> {
     ///
     /// # Safety
     ///
-    /// This function returns a raw pointer of the inner memory or a haandle of the associated
+    /// This function returns a raw pointer of the inner memory or a handle of the associated
     /// hardware-specific object.
-    /// The value can not be used without knowing the associated hardware.
+    /// The returned value can not be used without knowing the associated hardware.
     pub unsafe fn as_handle(&self) -> *const u8 {
         self.handle
     }
@@ -107,9 +107,9 @@ impl<'hw> Buffer<'hw> {
     ///
     /// # Safety
     ///
-    /// This function returns a raw pointer of the inner memory or a haandle of the associated
+    /// This function returns a raw pointer of the inner memory or a handle of the associated
     /// device-specific object.
-    /// The value can not be used without knowing the associated hardware.
+    /// The returned value can not be used without knowing the associated hardware.
     pub unsafe fn as_mut_handle(&mut self) -> *mut u8 {
         self.handle
     }
