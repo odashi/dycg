@@ -74,6 +74,15 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
             .clone()
     }
 
+    pub fn hardware(&self) -> &'hw RefCell<dyn Hardware> {
+        self.graph
+            .borrow()
+            .get_step(self.step_id)
+            .unwrap()
+            .output
+            .hardware()
+    }
+
     pub fn calculate(&self) -> Result<Array<'hw>> {
         self.graph.borrow_mut().calculate(self.step_id)
     }
