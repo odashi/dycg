@@ -237,3 +237,47 @@ fn test_higher_order_gradients() {
     // y'''' == 0
     assert_eq!(gx4.calculate().unwrap().get_scalar_f32(), Ok(0.));
 }
+
+#[test]
+fn test_gradient_of_multiple_variables() {
+    let hw = RefCell::new(CpuHardware::new());
+    let g = RefCell::new(Graph::new());
+
+    let a = Node::from_scalar(&hw, &g, 2.);
+    let b = Node::from_scalar(&hw, &g, 3.);
+    let y = a * a * b;
+
+    let y_a = grad(y, &[a]).unwrap()[0];
+    let y_b = grad(y, &[b]).unwrap()[0];
+
+    let y_aa = grad(y_a, &[a]).unwrap()[0];
+    let y_ab = grad(y_a, &[b]).unwrap()[0];
+    let y_ba = grad(y_b, &[a]).unwrap()[0];
+    let y_bb = grad(y_b, &[b]).unwrap()[0];
+
+    let y_aaa = grad(y_aa, &[a]).unwrap()[0];
+    let y_aab = grad(y_aa, &[b]).unwrap()[0];
+    let y_aba = grad(y_ab, &[a]).unwrap()[0];
+    let y_abb = grad(y_ab, &[b]).unwrap()[0];
+    let y_baa = grad(y_ba, &[a]).unwrap()[0];
+    let y_bab = grad(y_ba, &[b]).unwrap()[0];
+    let y_bba = grad(y_bb, &[a]).unwrap()[0];
+    let y_bbb = grad(y_bb, &[b]).unwrap()[0];
+
+    assert_eq!(y_a.calculate().unwrap().get_scalar_f32(), Ok(12.)); // 2ab
+    assert_eq!(y_b.calculate().unwrap().get_scalar_f32(), Ok(4.)); // a^2
+
+    assert_eq!(y_aa.calculate().unwrap().get_scalar_f32(), Ok(6.)); // 2b
+    assert_eq!(y_ab.calculate().unwrap().get_scalar_f32(), Ok(4.)); // 2a
+    assert_eq!(y_ba.calculate().unwrap().get_scalar_f32(), Ok(4.)); // 2a
+    assert_eq!(y_bb.calculate().unwrap().get_scalar_f32(), Ok(0.)); // 0
+
+    assert_eq!(y_aaa.calculate().unwrap().get_scalar_f32(), Ok(0.)); // 0
+    assert_eq!(y_aab.calculate().unwrap().get_scalar_f32(), Ok(2.)); // 2
+    assert_eq!(y_aba.calculate().unwrap().get_scalar_f32(), Ok(2.)); // 2
+    assert_eq!(y_abb.calculate().unwrap().get_scalar_f32(), Ok(0.)); // 0
+    assert_eq!(y_baa.calculate().unwrap().get_scalar_f32(), Ok(2.)); // 2
+    assert_eq!(y_bab.calculate().unwrap().get_scalar_f32(), Ok(0.)); // 0
+    assert_eq!(y_bba.calculate().unwrap().get_scalar_f32(), Ok(0.)); // 0
+    assert_eq!(y_bbb.calculate().unwrap().get_scalar_f32(), Ok(0.)); // 0
+}
