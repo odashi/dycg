@@ -17,7 +17,7 @@ pub(crate) trait Operator<'hw> {
         &self,
         inputs: &[&'hw RefCell<dyn Hardware>],
     ) -> Result<&'hw RefCell<dyn Hardware>> {
-        // Most operations assumes that all inputs are on the same hardware.
+        // Most operations assume that all inputs are on the same hardware.
         if self.input_size() > 0 {
             let hw = inputs[0];
             if inputs.iter().skip(1).all(|&x| ptr::eq(hw, x)) {
