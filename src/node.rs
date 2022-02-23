@@ -309,7 +309,7 @@ pub fn grad<'hw, 'op, 'g>(
         }
     }
 
-    // Collects the nodes representings gradients of `x`.
+    // Collects the nodes representing gradients of `x`.
     Ok(x.iter()
         .map(|node| {
             match unsafe { gradients.get_unchecked(node.step_id) } {
