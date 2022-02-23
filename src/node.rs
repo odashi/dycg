@@ -275,33 +275,33 @@ pub fn grad<'hw, 'op, 'g>(
 
     // Performs backpropagation.
     for step_id in ((earliest_step_id + 1)..=latest_step_id).rev() {
-        let cur_gy = unsafe { gradients.get_unchecked(step_id) };
-        if cur_gy.is_none() {
-            // No gradients propagated from the outputs.
-            // We can skip this backward step.
+        let cur_gy = if let Some(gy) = unsafe { gradients.get_unchecked(step_id) } {
+            *gy
+        } else {
+            // No preceding gradients propagated to this step.
             continue;
-        }
+        };
 
-        let cur_y = Node::new(g, step_id);
-
-        let (cur_xs_ids, grad_fn) = {
+        let (cur_xs_ids, maybe_grad_fn) = {
             let g = g.borrow();
             let step = g.get_step(step_id).unwrap();
             (step.inputs.clone(), step.operator.get_gradient_fn())
         };
 
-        if grad_fn.is_none() {
+        let grad_fn = if let Some(f) = maybe_grad_fn {
+            f
+        } else {
             // No gradient operation is defined for this step.
             continue;
-        }
+        };
 
+        // Calculates gradients for this step.
         let cur_xs = cur_xs_ids
             .iter()
             .map(|&step_id| Node::new(g, step_id))
             .collect::<Vec<_>>();
-
-        // Obtains nodes for gradients by this step.
-        let cur_gxs = grad_fn.unwrap().perform(&cur_xs, cur_y, cur_gy.unwrap());
+        let cur_y = Node::new(g, step_id);
+        let cur_gxs = grad_fn.perform(&cur_xs, cur_y, cur_gy);
 
         // Integrates gradients.
         for (&cur_x_id, &cur_gx) in cur_xs_ids.iter().zip(cur_gxs.iter()) {
