@@ -44,7 +44,7 @@ fn test_unrelated() {
     assert_eq!(gx[0].shape(), make_shape![]);
     assert!(ptr::eq(gx[0].hardware(), &hw));
 
-    // dy/dx == 0 since y is not calculated from x.
+    // dy/dx == 0 since y is not calculated by x.
     assert_eq!(gx[0].calculate().unwrap().get_scalar_f32(), Ok(0.));
 }
 
