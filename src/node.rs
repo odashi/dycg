@@ -328,3 +328,6 @@ pub fn grad<'hw, 'op, 'g>(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod grad_tests;
