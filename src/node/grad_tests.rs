@@ -205,3 +205,35 @@ fn test_multiple_computation() {
     // dy/dc = -b
     assert_eq!(gx[2].calculate().unwrap().get_scalar_f32(), Ok(-2.));
 }
+
+#[test]
+fn test_higher_order_gradients() {
+    let hw = RefCell::new(CpuHardware::new());
+    let g = RefCell::new(Graph::new());
+
+    let x = Node::from_scalar(&hw, &g, 5.);
+    let y = x * x * x;
+
+    let gx1 = grad(y, &[x]).unwrap()[0];
+    let gx2 = grad(gx1, &[x]).unwrap()[0];
+    let gx3 = grad(gx2, &[x]).unwrap()[0];
+    let gx4 = grad(gx3, &[x]).unwrap()[0];
+
+    assert_eq!(gx1.shape(), make_shape![]);
+    assert_eq!(gx2.shape(), make_shape![]);
+    assert_eq!(gx3.shape(), make_shape![]);
+    assert_eq!(gx4.shape(), make_shape![]);
+    assert!(ptr::eq(gx1.hardware(), &hw));
+    assert!(ptr::eq(gx2.hardware(), &hw));
+    assert!(ptr::eq(gx3.hardware(), &hw));
+    assert!(ptr::eq(gx4.hardware(), &hw));
+
+    // y' == dy/dx == 3x^2
+    assert_eq!(gx1.calculate().unwrap().get_scalar_f32(), Ok(75.));
+    // y'' == 6x
+    assert_eq!(gx2.calculate().unwrap().get_scalar_f32(), Ok(30.));
+    // y''' == 6
+    assert_eq!(gx3.calculate().unwrap().get_scalar_f32(), Ok(6.));
+    // y'''' == 0
+    assert_eq!(gx4.calculate().unwrap().get_scalar_f32(), Ok(0.));
+}
