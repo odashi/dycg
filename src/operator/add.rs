@@ -25,16 +25,22 @@ impl<'hw> Operator<'hw> for Add {
         inputs[0].elementwise_add_f32(inputs[1])
     }
 
-    fn gradient<'op: 'g, 'g>(
+    fn get_gradient_fn(&self) -> Option<Box<dyn Gradient>> {
+        Some(Box::new(AddGrad {}))
+    }
+}
+
+/// Gradient for Add.
+struct AddGrad;
+
+impl Gradient for AddGrad {
+    fn perform<'hw: 'op, 'op: 'g, 'g>(
         &self,
         _x: &[Node<'hw, 'op, 'g>],
         _y: Node<'hw, 'op, 'g>,
         gy: Node<'hw, 'op, 'g>,
-    ) -> Result<Vec<Node<'hw, 'op, 'g>>>
-    where
-        'hw: 'op,
-    {
-        Ok(vec![gy, gy])
+    ) -> Vec<Node<'hw, 'op, 'g>> {
+        vec![gy, gy]
     }
 }
 

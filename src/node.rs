@@ -282,26 +282,33 @@ pub fn grad<'hw, 'op, 'g>(
             continue;
         }
 
-        let cur_xs_ids = g.borrow().get_step(step_id).unwrap().inputs.clone();
+        let cur_y = Node::new(g, step_id);
+
+        let (cur_xs_ids, grad_fn) = {
+            let g = g.borrow();
+            let step = g.get_step(step_id).unwrap();
+            (step.inputs.clone(), step.operator.get_gradient_fn())
+        };
+
+        if grad_fn.is_none() {
+            // No gradient operation is defined for this step.
+            continue;
+        }
+
         let cur_xs = cur_xs_ids
             .iter()
             .map(|&step_id| Node::new(g, step_id))
             .collect::<Vec<_>>();
-        let cur_y = Node::new(g, step_id);
 
-        if let Ok(cur_gxs) =
-            g.borrow()
-                .get_step(step_id)
-                .unwrap()
-                .operator
-                .gradient(&cur_xs, cur_y, cur_gy.unwrap())
-        {
-            for (&cur_x_id, &cur_gx) in cur_xs_ids.iter().zip(cur_gxs.iter()) {
-                let prev_gx = unsafe { gradients.get_unchecked_mut(cur_x_id) };
-                *prev_gx = match prev_gx {
-                    Some(node) => Some(*node + cur_gx),
-                    None => Some(cur_gx),
-                }
+        // Obtains nodes for gradients by this step.
+        let cur_gxs = grad_fn.unwrap().perform(&cur_xs, cur_y, cur_gy.unwrap());
+
+        // Integrates gradients.
+        for (&cur_x_id, &cur_gx) in cur_xs_ids.iter().zip(cur_gxs.iter()) {
+            let prev_gx = unsafe { gradients.get_unchecked_mut(cur_x_id) };
+            *prev_gx = match prev_gx {
+                Some(node) => Some(*node + cur_gx),
+                None => Some(cur_gx),
             }
         }
     }
@@ -513,11 +520,25 @@ mod tests {
         let gx = grad(x, &[x]).unwrap();
         assert_eq!(gx.len(), 1);
 
-        let gx = gx[0];
-        assert_eq!(gx.shape(), make_shape![]);
-        assert!(ptr::eq(gx.hardware(), &hw));
+        assert_eq!(gx[0].shape(), make_shape![]);
+        assert!(ptr::eq(gx[0].hardware(), &hw));
+        assert_eq!(gx[0].calculate().unwrap().get_scalar_f32(), Ok(1.));
+    }
 
-        assert_eq!(gx.calculate().unwrap().get_scalar_f32(), Ok(1.));
+    #[test]
+    fn test_grad_unrelated() {
+        let hw = RefCell::new(CpuHardware::new());
+        let g = RefCell::new(Graph::new());
+
+        let x = Node::from_scalar(&hw, &g, 42.);
+        let y = Node::from_scalar(&hw, &g, 42.);
+
+        let gx = grad(y, &[x]).unwrap();
+        assert_eq!(gx.len(), 1);
+
+        assert_eq!(gx[0].shape(), make_shape![]);
+        assert!(ptr::eq(gx[0].hardware(), &hw));
+        assert_eq!(gx[0].calculate().unwrap().get_scalar_f32(), Ok(0.));
     }
 
     #[test]
@@ -531,10 +552,94 @@ mod tests {
         let gx = grad(y, &[x]).unwrap();
         assert_eq!(gx.len(), 1);
 
-        let gx = gx[0];
-        assert_eq!(gx.shape(), make_shape![]);
-        assert!(ptr::eq(gx.hardware(), &hw));
+        assert_eq!(gx[0].shape(), make_shape![]);
+        assert!(ptr::eq(gx[0].hardware(), &hw));
+        assert_eq!(gx[0].calculate().unwrap().get_scalar_f32(), Ok(-1.));
+    }
 
-        assert_eq!(gx.calculate().unwrap().get_scalar_f32(), Ok(1.));
+    #[test]
+    fn test_grad_add() {
+        let hw = RefCell::new(CpuHardware::new());
+        let g = RefCell::new(Graph::new());
+
+        let a = Node::from_scalar(&hw, &g, 123.);
+        let b = Node::from_scalar(&hw, &g, 456.);
+        let y = a + b;
+
+        let gx = grad(y, &[a, b]).unwrap();
+        assert_eq!(gx.len(), 2);
+
+        assert_eq!(gx[0].shape(), make_shape![]);
+        assert!(ptr::eq(gx[0].hardware(), &hw));
+        assert_eq!(gx[0].calculate().unwrap().get_scalar_f32(), Ok(1.));
+
+        assert_eq!(gx[1].shape(), make_shape![]);
+        assert!(ptr::eq(gx[1].hardware(), &hw));
+        assert_eq!(gx[1].calculate().unwrap().get_scalar_f32(), Ok(1.));
+    }
+
+    #[test]
+    fn test_grad_sub() {
+        let hw = RefCell::new(CpuHardware::new());
+        let g = RefCell::new(Graph::new());
+
+        let a = Node::from_scalar(&hw, &g, 123.);
+        let b = Node::from_scalar(&hw, &g, 456.);
+        let y = a - b;
+
+        let gx = grad(y, &[a, b]).unwrap();
+        assert_eq!(gx.len(), 2);
+
+        assert_eq!(gx[0].shape(), make_shape![]);
+        assert!(ptr::eq(gx[0].hardware(), &hw));
+        assert_eq!(gx[0].calculate().unwrap().get_scalar_f32(), Ok(1.));
+
+        assert_eq!(gx[1].shape(), make_shape![]);
+        assert!(ptr::eq(gx[1].hardware(), &hw));
+        assert_eq!(gx[1].calculate().unwrap().get_scalar_f32(), Ok(-1.));
+    }
+
+    #[test]
+    fn test_grad_mul() {
+        let hw = RefCell::new(CpuHardware::new());
+        let g = RefCell::new(Graph::new());
+
+        let a = Node::from_scalar(&hw, &g, 123.);
+        let b = Node::from_scalar(&hw, &g, 456.);
+        let y = a * b;
+
+        let gx = grad(y, &[a, b]).unwrap();
+        assert_eq!(gx.len(), 2);
+
+        assert_eq!(gx[0].shape(), make_shape![]);
+        assert!(ptr::eq(gx[0].hardware(), &hw));
+        assert_eq!(gx[0].calculate().unwrap().get_scalar_f32(), Ok(456.));
+
+        assert_eq!(gx[1].shape(), make_shape![]);
+        assert!(ptr::eq(gx[1].hardware(), &hw));
+        assert_eq!(gx[1].calculate().unwrap().get_scalar_f32(), Ok(123.));
+    }
+
+    #[test]
+    fn test_grad_div() {
+        let hw = RefCell::new(CpuHardware::new());
+        let g = RefCell::new(Graph::new());
+
+        let a = Node::from_scalar(&hw, &g, 3.);
+        let b = Node::from_scalar(&hw, &g, 2.);
+        let y = a / b;
+
+        let gx = grad(y, &[a, b]).unwrap();
+        assert_eq!(gx.len(), 2);
+
+        assert_eq!(gx[0].shape(), make_shape![]);
+        assert!(ptr::eq(gx[0].hardware(), &hw));
+        // dy/da == 1/b
+        assert_eq!(gx[0].calculate().unwrap().get_scalar_f32(), Ok(0.5));
+
+        assert_eq!(gx[1].shape(), make_shape![]);
+        assert!(ptr::eq(gx[1].hardware(), &hw));
+        // dy/db == -a/b^2
+        assert_eq!(gx[1].calculate().unwrap().get_scalar_f32(), Ok(-0.75));
     }
 }
