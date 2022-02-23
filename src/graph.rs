@@ -1,14 +1,16 @@
 use crate::array::Array;
 use crate::error::Error;
+use crate::hardware::Hardware;
 use crate::operator::Operator;
 use crate::result::Result;
 use crate::shape::Shape;
+use std::cell::RefCell;
 
 /// Placeholder of `Array`s.
-/// Unlike `Option`, the object always holds its `Shape` informatin.
+/// Unlike `Option`, the object always holds its `Shape` and `Hardware` informatin.
 pub(crate) enum ArrayPlaceholder<'hw> {
     /// `Array` is not assigned, while its `Shape` is known.
-    Unassigned(Shape),
+    Unassigned(Shape, &'hw RefCell<dyn Hardware>),
 
     /// `Array` is assigned.
     Assigned(Array<'hw>),
@@ -22,8 +24,20 @@ impl<'hw> ArrayPlaceholder<'hw> {
     /// A reference to the inner `Shape` object.
     pub(crate) fn shape(&self) -> &Shape {
         match self {
-            Self::Unassigned(ref shape) => shape,
+            Self::Unassigned(ref shape, _) => shape,
             Self::Assigned(ref array) => array.shape(),
+        }
+    }
+
+    /// Obtains the `Hardware` of this placeholder.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the `Hardware` object.
+    pub(crate) fn hardware(&self) -> &'hw RefCell<dyn Hardware> {
+        match self {
+            Self::Unassigned(_, hardware) => hardware,
+            Self::Assigned(ref array) => array.hardware(),
         }
     }
 
@@ -35,7 +49,7 @@ impl<'hw> ArrayPlaceholder<'hw> {
     /// * `None` - The placeholder does not hold the `Array` object.
     pub(crate) fn array(&self) -> Option<&Array<'hw>> {
         match self {
-            Self::Unassigned(_) => None,
+            Self::Unassigned(_, _) => None,
             Self::Assigned(ref array) => Some(array),
         }
     }
@@ -137,17 +151,22 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
             )));
         }
 
-        let input_shapes = inputs
+        let input_steps = inputs
             .iter()
-            .map(|&step_id| Ok(self.get_step(step_id)?.output.shape()))
+            .map(|&step_id| self.get_step(step_id))
             .collect::<Result<Vec<_>>>()?;
+        let (input_shapes, input_hardwares): (Vec<_>, Vec<_>) = input_steps
+            .iter()
+            .map(|&step| (step.output.shape(), step.output.hardware()))
+            .unzip();
 
         let output_shape = operator.perform_shape(&input_shapes)?;
+        let output_hardware = operator.perform_hardware(&input_hardwares)?;
 
         self.steps.push(Step::new(
             operator,
             inputs,
-            ArrayPlaceholder::Unassigned(output_shape),
+            ArrayPlaceholder::Unassigned(output_shape, output_hardware),
         ));
 
         Ok(new_step_id)
@@ -246,3 +265,5 @@ impl<'hw: 'op, 'op> Default for Graph<'hw, 'op> {
         Self::new()
     }
 }
+
+// TODO(odashi): add tests.
