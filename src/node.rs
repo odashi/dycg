@@ -236,28 +236,94 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Div for Node<'hw, 'op, 'g> {
 /// # Arguments
 ///
 /// * `y` - `Node` representing the output value.
-/// * `x` - List of `Node`s representing the input value.
+/// * `xs` - List of `Node`s representing the input value.
 ///
 /// # Returns
 ///
-/// * `Ok(Vec<Node>)` - New `Node`s representing the derivative dy/dx. The order of elements
-///   corresponds to that of `x`.
-/// * `Err(Error)` - Some errors occurred during the process.
+/// New `Node`s representing the derivative dy/dx. The order of elements corresponds to that of
+/// `x`.
 pub fn grad<'hw, 'op, 'g>(
-    _y: Node<'hw, 'op, 'g>,
-    _x: &[Node<'hw, 'op, 'g>],
+    y: Node<'hw, 'op, 'g>,
+    x: &[Node<'hw, 'op, 'g>],
 ) -> Result<Vec<Node<'hw, 'op, 'g>>> {
-    Err(Error::NotSupported("Not implemented.".to_string()))
+    // Strategy: calculates gradients of every step between the earliest step in `x` and `y`.
+    // This is redundant because some steps may not belong to the path between any of `x` and `y`,
+    // But it may be enough efficient because the usual use-case of this function may be
+    // "calculating graditns from the last step to every input."
+
+    let g = y.graph;
+    if !x.iter().all(|node| ptr::eq(node.graph, g)) {
+        return Err(Error::InvalidNode(
+            "Gradients can not be calculated beyond different graphs.".to_string(),
+        ));
+    }
+
+    let earliest_step_id = if let Some(step_id) = x.iter().map(|node| node.step_id).min() {
+        step_id
+    } else {
+        // `x` is empty. No need to calculate any gradients.
+        return Ok(vec![]);
+    };
+    let latest_step_id = y.step_id;
+
+    // Placeholder of gradient nodes.
+    let mut gradients = vec![None; g.borrow().num_steps()];
+
+    // Assigns the gradient of `y` == 1.
+    *(unsafe { gradients.get_unchecked_mut(latest_step_id) }) =
+        Some(Node::fill(y.hardware(), g, y.shape(), 1.));
+
+    // Performs backpropagation.
+    for step_id in ((earliest_step_id + 1)..=latest_step_id).rev() {
+        let cur_gy = unsafe { gradients.get_unchecked(step_id) };
+        if cur_gy.is_none() {
+            // No gradients propagated from the outputs.
+            // We can skip this backward step.
+            continue;
+        }
+
+        let cur_xs_ids = g.borrow().get_step(step_id).unwrap().inputs.clone();
+        let cur_xs = cur_xs_ids
+            .iter()
+            .map(|&step_id| Node::new(g, step_id))
+            .collect::<Vec<_>>();
+        let cur_y = Node::new(g, step_id);
+
+        if let Ok(cur_gxs) =
+            g.borrow()
+                .get_step(step_id)
+                .unwrap()
+                .operator
+                .gradient(&cur_xs, cur_y, cur_gy.unwrap())
+        {
+            for (&cur_x_id, &cur_gx) in cur_xs_ids.iter().zip(cur_gxs.iter()) {
+                let prev_gx = unsafe { gradients.get_unchecked_mut(cur_x_id) };
+                *prev_gx = match prev_gx {
+                    Some(node) => Some(*node + cur_gx),
+                    None => Some(cur_gx),
+                }
+            }
+        }
+    }
+
+    // Collects the nodes.
+    Ok(x.iter()
+        .map(|node| {
+            match unsafe { gradients.get_unchecked(node.step_id) } {
+                Some(grad_node) => *grad_node,
+                // If no gradient propagation occurred for this node,
+                // we assume that the gradient is 0.
+                None => Node::fill(node.hardware(), g, node.shape(), 0.),
+            }
+        })
+        .collect::<Vec<_>>())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::graph::Graph;
     use crate::hardware::cpu::CpuHardware;
     use crate::make_shape;
-    use crate::node::Node;
-    use std::cell::RefCell;
-    use std::ptr;
+    use crate::node::*;
 
     #[test]
     fn test_steps() {
@@ -435,5 +501,40 @@ mod tests {
         assert!(ptr::eq(y.hardware(), &hw));
 
         assert_eq!(y.calculate().unwrap().get_scalar_f32(), Ok(-5.));
+    }
+
+    #[test]
+    fn test_grad_self() {
+        let hw = RefCell::new(CpuHardware::new());
+        let g = RefCell::new(Graph::new());
+
+        let x = Node::from_scalar(&hw, &g, 42.);
+
+        let gx = grad(x, &[x]).unwrap();
+        assert_eq!(gx.len(), 1);
+
+        let gx = gx[0];
+        assert_eq!(gx.shape(), make_shape![]);
+        assert!(ptr::eq(gx.hardware(), &hw));
+
+        assert_eq!(gx.calculate().unwrap().get_scalar_f32(), Ok(1.));
+    }
+
+    #[test]
+    fn test_grad_neg() {
+        let hw = RefCell::new(CpuHardware::new());
+        let g = RefCell::new(Graph::new());
+
+        let x = Node::from_scalar(&hw, &g, 42.);
+        let y = -x;
+
+        let gx = grad(y, &[x]).unwrap();
+        assert_eq!(gx.len(), 1);
+
+        let gx = gx[0];
+        assert_eq!(gx.shape(), make_shape![]);
+        assert!(ptr::eq(gx.hardware(), &hw));
+
+        assert_eq!(gx.calculate().unwrap().get_scalar_f32(), Ok(1.));
     }
 }
