@@ -275,11 +275,9 @@ pub fn grad<'hw, 'op, 'g>(
 
     // Performs backpropagation.
     for step_id in ((earliest_step_id + 1)..=latest_step_id).rev() {
-        let cur_gy = if let Some(gy) = unsafe { gradients.get_unchecked(step_id) } {
-            *gy
-        } else {
-            // No preceding gradients propagated to this step.
-            continue;
+        let cur_gy = match unsafe { gradients.get_unchecked(step_id) } {
+            Some(gy) => *gy,
+            None => continue, // No preceding gradients propagated to this step.
         };
 
         let (cur_xs_ids, maybe_grad_fn) = {
@@ -288,11 +286,9 @@ pub fn grad<'hw, 'op, 'g>(
             (step.inputs.clone(), step.operator.get_gradient_fn())
         };
 
-        let grad_fn = if let Some(f) = maybe_grad_fn {
-            f
-        } else {
-            // No gradient operation is defined for this step.
-            continue;
+        let grad_fn = match maybe_grad_fn {
+            Some(f) => f,
+            None => continue, // No gradient operation is defined for this step.
         };
 
         // Calculates gradients for this step.
