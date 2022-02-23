@@ -276,7 +276,7 @@ pub fn grad<'hw, 'op, 'g>(
     // Performs backpropagation.
     for step_id in ((earliest_step_id + 1)..=latest_step_id).rev() {
         let cur_gy = match unsafe { gradients.get_unchecked(step_id) } {
-            Some(gy) => *gy,
+            Some(node) => *node,
             None => continue, // No preceding gradients propagated to this step.
         };
 
@@ -309,13 +309,13 @@ pub fn grad<'hw, 'op, 'g>(
         }
     }
 
-    // Collects the nodes.
+    // Collects the nodes representings gradients of `x`.
     Ok(x.iter()
         .map(|node| {
             match unsafe { gradients.get_unchecked(node.step_id) } {
                 Some(grad_node) => *grad_node,
                 // If no gradient propagation occurred for this node,
-                // we assume that the gradient is 0.
+                // assuming that the gradient is 0.
                 None => Node::fill(node.hardware(), g, node.shape(), 0.),
             }
         })
