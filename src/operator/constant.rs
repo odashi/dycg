@@ -1,7 +1,4 @@
-use crate::array::Array;
-use crate::operator::Operator;
-use crate::result::Result;
-use crate::shape::Shape;
+use crate::operator::*;
 
 pub(crate) struct Constant<'hw> {
     value: Array<'hw>,
@@ -24,6 +21,13 @@ impl<'hw> Operator<'hw> for Constant<'hw> {
 
     fn perform_shape(&self, _inputs: &[&Shape]) -> Result<Shape> {
         Ok(self.value.shape().clone())
+    }
+
+    fn perform_hardware(
+        &self,
+        _inputs: &[&'hw RefCell<dyn Hardware>],
+    ) -> Result<&'hw RefCell<dyn Hardware>> {
+        Ok(self.value.hardware())
     }
 
     fn perform(&self, _inputs: &[&Array<'hw>]) -> Result<Array<'hw>> {
