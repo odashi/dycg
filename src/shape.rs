@@ -42,22 +42,54 @@ impl Shape {
     pub fn new<const N: usize>(dimensions: [usize; N]) -> Self {
         assert!(
             N <= MAX_NUM_DIMENSIONS,
-            "Number of dimensions must be equal to or less than <= {}",
-            MAX_NUM_DIMENSIONS
+            "Number of dimensions must be equal to or less than {}, but got {}.",
+            MAX_NUM_DIMENSIONS,
+            N
         );
-        let (dimensions, num_elements) = {
-            let mut buffer = [0usize; MAX_NUM_DIMENSIONS];
-            let mut size = 1usize;
-            for i in 0..N {
-                let d = dimensions[i];
-                buffer[i] = d;
-                size *= d;
-            }
-            (buffer, size)
-        };
+        let mut actual_dimensions = [0usize; MAX_NUM_DIMENSIONS];
+        let mut num_elements = 1usize;
+        for i in 0..N {
+            let d = dimensions[i];
+            actual_dimensions[i] = d;
+            num_elements *= d;
+        }
         Self {
             num_dimensions: N,
-            dimensions,
+            dimensions: actual_dimensions,
+            num_elements,
+        }
+    }
+
+    /// Creates a new n-dimensional shape from a slice.
+    ///
+    /// # Arguments
+    ///
+    /// * `dimensions` - Number of elements for each axis.
+    ///
+    /// # Returns
+    ///
+    /// A new `Shape` object.
+    ///
+    /// # Panics
+    ///
+    /// The length of the `dimensions` is larger than `MAX_NUM_DIMENSIONS`.
+    pub fn from_slice(dimensions: &[usize]) -> Self {
+        let num_dimensions = dimensions.len();
+        assert!(
+            num_dimensions <= MAX_NUM_DIMENSIONS,
+            "Number of dimensions must be equal to or less than {}, but got {}.",
+            MAX_NUM_DIMENSIONS,
+            num_dimensions
+        );
+        let mut actual_dimensions = [0usize; MAX_NUM_DIMENSIONS];
+        let mut num_elements = 1usize;
+        for (ad, d) in actual_dimensions.iter_mut().zip(dimensions.iter()) {
+            *ad = *d;
+            num_elements *= d;
+        }
+        Self {
+            num_dimensions,
+            dimensions: actual_dimensions,
             num_elements,
         }
     }

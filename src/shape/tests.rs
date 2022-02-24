@@ -10,7 +10,7 @@ const DIMS7: [usize; 7] = [3, 1, 4, 1, 5, 9, 2];
 const DIMS8: [usize; 8] = [3, 1, 4, 1, 5, 9, 2, 6];
 
 #[test]
-fn test_inner_values() {
+fn test_new() {
     let shape0 = Shape::new([]);
     let shape1 = Shape::new(DIMS1);
     let shape2 = Shape::new(DIMS2);
@@ -20,6 +20,49 @@ fn test_inner_values() {
     let shape6 = Shape::new(DIMS6);
     let shape7 = Shape::new(DIMS7);
     let shape8 = Shape::new(DIMS8);
+
+    assert_eq!(shape0.num_dimensions, 0);
+    assert_eq!(shape1.num_dimensions, 1);
+    assert_eq!(shape2.num_dimensions, 2);
+    assert_eq!(shape3.num_dimensions, 3);
+    assert_eq!(shape4.num_dimensions, 4);
+    assert_eq!(shape5.num_dimensions, 5);
+    assert_eq!(shape6.num_dimensions, 6);
+    assert_eq!(shape7.num_dimensions, 7);
+    assert_eq!(shape8.num_dimensions, 8);
+
+    assert_eq!(shape0.dimensions, [0, 0, 0, 0, 0, 0, 0, 0]);
+    assert_eq!(shape1.dimensions, [3, 0, 0, 0, 0, 0, 0, 0]);
+    assert_eq!(shape2.dimensions, [3, 1, 0, 0, 0, 0, 0, 0]);
+    assert_eq!(shape3.dimensions, [3, 1, 4, 0, 0, 0, 0, 0]);
+    assert_eq!(shape4.dimensions, [3, 1, 4, 1, 0, 0, 0, 0]);
+    assert_eq!(shape5.dimensions, [3, 1, 4, 1, 5, 0, 0, 0]);
+    assert_eq!(shape6.dimensions, [3, 1, 4, 1, 5, 9, 0, 0]);
+    assert_eq!(shape7.dimensions, [3, 1, 4, 1, 5, 9, 2, 0]);
+    assert_eq!(shape8.dimensions, [3, 1, 4, 1, 5, 9, 2, 6]);
+
+    assert_eq!(shape0.num_elements, 1);
+    assert_eq!(shape1.num_elements, 3);
+    assert_eq!(shape2.num_elements, 3);
+    assert_eq!(shape3.num_elements, 12);
+    assert_eq!(shape4.num_elements, 12);
+    assert_eq!(shape5.num_elements, 60);
+    assert_eq!(shape6.num_elements, 540);
+    assert_eq!(shape7.num_elements, 1080);
+    assert_eq!(shape8.num_elements, 6480);
+}
+
+#[test]
+fn test_from_slice() {
+    let shape0 = Shape::from_slice(&[]);
+    let shape1 = Shape::from_slice(&DIMS1);
+    let shape2 = Shape::from_slice(&DIMS2);
+    let shape3 = Shape::from_slice(&DIMS3);
+    let shape4 = Shape::from_slice(&DIMS4);
+    let shape5 = Shape::from_slice(&DIMS5);
+    let shape6 = Shape::from_slice(&DIMS6);
+    let shape7 = Shape::from_slice(&DIMS7);
+    let shape8 = Shape::from_slice(&DIMS8);
 
     assert_eq!(shape0.num_dimensions, 0);
     assert_eq!(shape1.num_dimensions, 1);
