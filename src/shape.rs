@@ -48,9 +48,8 @@ impl Shape {
         );
         let mut actual_dimensions = [0usize; MAX_NUM_DIMENSIONS];
         let mut num_elements = 1usize;
-        for i in 0..N {
-            let d = dimensions[i];
-            actual_dimensions[i] = d;
+        for (ad, d) in actual_dimensions.iter_mut().zip(dimensions.iter()) {
+            *ad = *d;
             num_elements *= d;
         }
         Self {
