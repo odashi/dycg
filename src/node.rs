@@ -244,8 +244,8 @@ pub fn grad<'hw, 'op, 'g>(
 mod tests {
     use crate::graph::Graph;
     use crate::hardware::cpu::CpuHardware;
-    use crate::make_shape;
     use crate::node::Node;
+    use crate::shape::Shape;
     use std::cell::RefCell;
 
     #[test]
@@ -256,9 +256,9 @@ mod tests {
         let rhs = Node::from_scalar(&hw, &g, 2.);
         let ret = lhs + rhs;
 
-        assert_eq!(lhs.shape(), make_shape![]);
-        assert_eq!(rhs.shape(), make_shape![]);
-        assert_eq!(ret.shape(), make_shape![]);
+        assert_eq!(lhs.shape(), Shape::new([]));
+        assert_eq!(rhs.shape(), Shape::new([]));
+        assert_eq!(ret.shape(), Shape::new([]));
 
         {
             let g = g.borrow();
@@ -273,7 +273,7 @@ mod tests {
         assert_eq!(ret, Node::new(&g, 2));
 
         let retval = ret.calculate().unwrap();
-        assert_eq!(*retval.shape(), make_shape![]);
+        assert_eq!(*retval.shape(), Shape::new([]));
         assert_eq!(retval.get_scalar_f32(), Ok(3.));
     }
 
@@ -285,8 +285,8 @@ mod tests {
         let src = Node::from_scalar(&hw, &g, 42.);
         let dest = -src;
 
-        assert_eq!(src.shape(), make_shape![]);
-        assert_eq!(dest.shape(), make_shape![]);
+        assert_eq!(src.shape(), Shape::new([]));
+        assert_eq!(dest.shape(), Shape::new([]));
 
         assert_eq!(dest.calculate().unwrap().get_scalar_f32(), Ok(-42.));
     }
@@ -300,9 +300,9 @@ mod tests {
         let rhs = Node::from_scalar(&hw, &g, 2.);
         let ret = lhs + rhs;
 
-        assert_eq!(lhs.shape(), make_shape![]);
-        assert_eq!(rhs.shape(), make_shape![]);
-        assert_eq!(ret.shape(), make_shape![]);
+        assert_eq!(lhs.shape(), Shape::new([]));
+        assert_eq!(rhs.shape(), Shape::new([]));
+        assert_eq!(ret.shape(), Shape::new([]));
 
         assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(3.));
     }
@@ -316,9 +316,9 @@ mod tests {
         let rhs = Node::from_scalar(&hw, &g, 2.);
         let ret = lhs - rhs;
 
-        assert_eq!(lhs.shape(), make_shape![]);
-        assert_eq!(rhs.shape(), make_shape![]);
-        assert_eq!(ret.shape(), make_shape![]);
+        assert_eq!(lhs.shape(), Shape::new([]));
+        assert_eq!(rhs.shape(), Shape::new([]));
+        assert_eq!(ret.shape(), Shape::new([]));
 
         assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(-1.));
     }
@@ -332,9 +332,9 @@ mod tests {
         let rhs = Node::from_scalar(&hw, &g, 2.);
         let ret = lhs * rhs;
 
-        assert_eq!(lhs.shape(), make_shape![]);
-        assert_eq!(rhs.shape(), make_shape![]);
-        assert_eq!(ret.shape(), make_shape![]);
+        assert_eq!(lhs.shape(), Shape::new([]));
+        assert_eq!(rhs.shape(), Shape::new([]));
+        assert_eq!(ret.shape(), Shape::new([]));
 
         assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(2.));
     }
@@ -348,9 +348,9 @@ mod tests {
         let rhs = Node::from_scalar(&hw, &g, 2.);
         let ret = lhs / rhs;
 
-        assert_eq!(lhs.shape(), make_shape![]);
-        assert_eq!(rhs.shape(), make_shape![]);
-        assert_eq!(ret.shape(), make_shape![]);
+        assert_eq!(lhs.shape(), Shape::new([]));
+        assert_eq!(rhs.shape(), Shape::new([]));
+        assert_eq!(ret.shape(), Shape::new([]));
 
         assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(0.5));
     }
@@ -359,8 +359,8 @@ mod tests {
     fn test_fill_scalar() {
         let hw = RefCell::new(CpuHardware::new());
         let g = RefCell::new(Graph::new());
-        let ret = Node::fill(&hw, &g, make_shape![], 123.);
-        assert_eq!(ret.shape(), make_shape![]);
+        let ret = Node::fill(&hw, &g, Shape::new([]), 123.);
+        assert_eq!(ret.shape(), Shape::new([]));
         assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(123.));
     }
 
@@ -368,8 +368,8 @@ mod tests {
     fn test_fill_0() {
         let hw = RefCell::new(CpuHardware::new());
         let g = RefCell::new(Graph::new());
-        let ret = Node::fill(&hw, &g, make_shape![0], 123.);
-        assert_eq!(ret.shape(), make_shape![0]);
+        let ret = Node::fill(&hw, &g, Shape::new([0]), 123.);
+        assert_eq!(ret.shape(), Shape::new([0]));
         assert_eq!(ret.calculate().unwrap().get_values_f32(), vec![]);
     }
 
@@ -377,8 +377,8 @@ mod tests {
     fn test_fill_n() {
         let hw = RefCell::new(CpuHardware::new());
         let g = RefCell::new(Graph::new());
-        let ret = Node::fill(&hw, &g, make_shape![3], 123.);
-        assert_eq!(ret.shape(), make_shape![3]);
+        let ret = Node::fill(&hw, &g, Shape::new([3]), 123.);
+        assert_eq!(ret.shape(), Shape::new([3]));
         assert_eq!(
             ret.calculate().unwrap().get_values_f32(),
             vec![123., 123., 123.]
@@ -395,10 +395,10 @@ mod tests {
         let c = Node::from_scalar(&hw, &g, 3.);
         let y = a + -b * c;
 
-        assert_eq!(a.shape(), make_shape![]);
-        assert_eq!(b.shape(), make_shape![]);
-        assert_eq!(c.shape(), make_shape![]);
-        assert_eq!(y.shape(), make_shape![]);
+        assert_eq!(a.shape(), Shape::new([]));
+        assert_eq!(b.shape(), Shape::new([]));
+        assert_eq!(c.shape(), Shape::new([]));
+        assert_eq!(y.shape(), Shape::new([]));
 
         assert_eq!(y.calculate().unwrap().get_scalar_f32(), Ok(-5.));
     }
