@@ -25,6 +25,9 @@ pub struct Shape {
 impl Shape {
     /// Creates a new n-dimensional shape.
     ///
+    /// This function takes a fixed-length array so that the compiler is expected to generate
+    /// highly-optimized machine code for the particular value of `N`.
+    ///
     /// # Arguments
     ///
     /// * `dimensions` - Number of elements for each axis.
