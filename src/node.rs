@@ -258,23 +258,21 @@ pub fn grad<'hw, 'op, 'g>(
         ));
     }
 
-    let earliest_step_id = if let Some(step_id) = x.iter().map(|node| node.step_id).min() {
-        step_id
-    } else {
-        // `x` is empty. No need to calculate any gradients.
-        return Ok(vec![]);
+    let first_step_id = match x.iter().map(|node| node.step_id).min() {
+        Some(step_id) => step_id,
+        None => return Ok(vec![]), // `x` is empty. No need to calculate any gradients.
     };
-    let latest_step_id = y.step_id;
+    let last_step_id = y.step_id;
 
     // Placeholder of gradient nodes.
     let mut gradients = vec![None; g.borrow().num_steps()];
 
     // Assigns the gradient of `y` == 1.
-    *(unsafe { gradients.get_unchecked_mut(latest_step_id) }) =
+    *(unsafe { gradients.get_unchecked_mut(last_step_id) }) =
         Some(Node::fill(y.hardware(), g, y.shape(), 1.));
 
     // Performs backpropagation.
-    for step_id in ((earliest_step_id + 1)..=latest_step_id).rev() {
+    for step_id in ((first_step_id + 1)..=last_step_id).rev() {
         let cur_gy = match unsafe { gradients.get_unchecked(step_id) } {
             Some(node) => *node,
             None => continue, // No preceding gradients propagated to this step.
