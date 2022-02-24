@@ -236,7 +236,7 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Div for Node<'hw, 'op, 'g> {
 /// # Arguments
 ///
 /// * `y` - `Node` representing the output value.
-/// * `xs` - List of `Node`s representing the input value.
+/// * `x` - List of `Node`s representing the input value.
 ///
 /// # Returns
 ///
