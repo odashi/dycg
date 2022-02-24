@@ -40,6 +40,11 @@ impl Shape {
     ///
     /// The const parameter `N` is larger than `MAX_NUM_DIMENSIONS`.
     pub fn new<const N: usize>(dimensions: [usize; N]) -> Self {
+        assert!(
+            N <= MAX_NUM_DIMENSIONS,
+            "Number of dimensions must be equal to or less than <= {}",
+            MAX_NUM_DIMENSIONS
+        );
         let (dimensions, num_elements) = {
             let mut buffer = [0usize; MAX_NUM_DIMENSIONS];
             let mut size = 1usize;
