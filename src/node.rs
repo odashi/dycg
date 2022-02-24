@@ -312,7 +312,7 @@ pub fn grad<'hw, 'op, 'g>(
         .map(|node| {
             match unsafe { gradients.get_unchecked(node.step_id) } {
                 Some(grad_node) => *grad_node,
-                // If no gradient propagation occurred for this node,
+                // No gradient propagation occurred for this node,
                 // assuming that the gradient is 0.
                 None => Node::fill(node.hardware(), g, node.shape(), 0.),
             }
