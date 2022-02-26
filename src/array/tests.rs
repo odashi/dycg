@@ -1,8 +1,6 @@
-use crate::array::Array;
+use crate::array::*;
 use crate::hardware::cpu::CpuHardware;
-use crate::make_shape;
-use std::cell::RefCell;
-use std::mem::size_of;
+use std::mem;
 use std::ptr;
 
 #[test]
@@ -10,7 +8,7 @@ fn test_raw_scalar() {
     let hw = RefCell::new(CpuHardware::new());
     let array = unsafe { Array::raw(&hw, make_shape![]) };
     assert!(ptr::eq(array.hardware(), &hw));
-    assert_eq!(array.buffer.size(), size_of::<f32>());
+    assert_eq!(array.buffer.size(), mem::size_of::<f32>());
     assert_eq!(array.shape, make_shape![]);
 }
 
@@ -28,7 +26,7 @@ fn test_raw_n() {
     let hw = RefCell::new(CpuHardware::new());
     let array = unsafe { Array::raw(&hw, make_shape![42]) };
     assert!(ptr::eq(array.hardware(), &hw));
-    assert_eq!(array.buffer.size(), 42 * size_of::<f32>());
+    assert_eq!(array.buffer.size(), 42 * mem::size_of::<f32>());
     assert_eq!(array.shape, make_shape![42]);
 }
 
@@ -38,7 +36,7 @@ fn test_raw_colocated_scalar() {
     let other = unsafe { Array::raw(&hw, make_shape![]) };
     let colocated = unsafe { Array::raw_colocated(&other, make_shape![]) };
     assert!(ptr::eq(colocated.hardware(), &hw));
-    assert_eq!(colocated.buffer.size(), size_of::<f32>());
+    assert_eq!(colocated.buffer.size(), mem::size_of::<f32>());
     assert_eq!(colocated.shape, make_shape![]);
 }
 
@@ -58,7 +56,7 @@ fn test_raw_colocated_n() {
     let other = unsafe { Array::raw(&hw, make_shape![]) };
     let colocated = unsafe { Array::raw_colocated(&other, make_shape![42]) };
     assert!(ptr::eq(colocated.hardware(), &hw));
-    assert_eq!(colocated.buffer.size(), 42 * size_of::<f32>());
+    assert_eq!(colocated.buffer.size(), 42 * mem::size_of::<f32>());
     assert_eq!(colocated.shape, make_shape![42]);
 }
 
