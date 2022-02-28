@@ -1,8 +1,4 @@
-use crate::array::Array;
-use crate::node::Node;
-use crate::operator::Operator;
-use crate::result::Result;
-use crate::shape::Shape;
+use crate::operator::*;
 
 pub(crate) struct Neg;
 
@@ -44,21 +40,41 @@ impl<'hw> Operator<'hw> for Neg {
 
 #[cfg(test)]
 mod tests {
-    use crate::array::Array;
     use crate::hardware::cpu::CpuHardware;
-    use crate::operator::neg::Neg;
-    use crate::operator::Operator;
-    use std::cell::RefCell;
+    use crate::operator::neg::*;
 
     #[test]
-    fn test_neg_op() {
-        let hw = RefCell::new(CpuHardware::new());
+    fn test_properties() {
         let op = Neg::new();
         assert_eq!(op.name(), "Neg");
         assert_eq!(op.input_size(), 1);
-        let inputs = vec![Array::scalar_f32(&hw, 42.)];
+    }
+
+    #[rustfmt::skip]
+    #[test]
+    fn test_perform_shape() {
+        let op = Neg::new();
+        
+        assert_eq!(op.perform_shape(&[&Shape::new([])]), Ok(Shape::new([])));
+        assert_eq!(op.perform_shape(&[&Shape::new([0])]), Ok(Shape::new([0])));
+        assert_eq!(op.perform_shape(&[&Shape::new([3])]), Ok(Shape::new([3])));
+    }
+
+    #[test]
+    fn test_perform_hardware() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Neg::new();
+
+        assert!(ptr::eq(op.perform_hardware(&[&hw]).unwrap(), &hw));
+    }
+
+    #[test]
+    fn test_perform() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Neg::new();
+        let input = Array::scalar_f32(&hw, 42.);
         let expected = Array::scalar_f32(&hw, -42.);
-        let observed = op.perform(&inputs.iter().collect::<Vec<_>>()).unwrap();
+        let observed = op.perform(&[&input]).unwrap();
         assert_eq!(observed.shape(), expected.shape());
         assert_eq!(observed.get_scalar_f32(), expected.get_scalar_f32());
     }

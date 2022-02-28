@@ -37,21 +37,51 @@ impl<'hw> Operator<'hw> for Constant<'hw> {
 
 #[cfg(test)]
 mod tests {
-    use crate::array::Array;
     use crate::hardware::cpu::CpuHardware;
-    use crate::operator::constant::Constant;
-    use crate::operator::Operator;
-    use std::cell::RefCell;
+    use crate::operator::constant::*;
 
     #[test]
-    fn test_constant_op() {
+    fn test_properties() {
         let hw = RefCell::new(CpuHardware::new());
         let op = Constant::new(Array::scalar_f32(&hw, 123.));
         assert_eq!(op.name(), "Constant");
         assert_eq!(op.input_size(), 0);
-        let input_refs = vec![];
+    }
+
+    #[test]
+    fn test_perform_shape_scalar() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Constant::new(Array::scalar_f32(&hw, 123.));
+        assert_eq!(op.perform_shape(&[]), Ok(Shape::new([])));
+    }
+
+    #[test]
+    fn test_perform_shape_0() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Constant::new(Array::fill_f32(&hw, Shape::new([0]), 123.));
+        assert_eq!(op.perform_shape(&[]), Ok(Shape::new([0])));
+    }
+
+    #[test]
+    fn test_perform_shape_n() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Constant::new(Array::fill_f32(&hw, Shape::new([3]), 123.));
+        assert_eq!(op.perform_shape(&[]), Ok(Shape::new([3])));
+    }
+
+    #[test]
+    fn test_perform_hardware() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Constant::new(Array::scalar_f32(&hw, 123.));
+        assert!(ptr::eq(op.perform_hardware(&[]).unwrap(), &hw));
+    }
+
+    #[test]
+    fn test_perform() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Constant::new(Array::scalar_f32(&hw, 123.));
         let expected = Array::scalar_f32(&hw, 123.);
-        let observed = op.perform(&input_refs).unwrap();
+        let observed = op.perform(&[]).unwrap();
         assert_eq!(observed.shape(), expected.shape());
         assert_eq!(observed.get_scalar_f32(), expected.get_scalar_f32());
     }

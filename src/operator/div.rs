@@ -1,8 +1,4 @@
-use crate::array::Array;
-use crate::node::Node;
-use crate::operator::Operator;
-use crate::result::Result;
-use crate::shape::Shape;
+use crate::operator::*;
 
 pub(crate) struct Div;
 
@@ -45,21 +41,56 @@ impl<'hw> Operator<'hw> for Div {
 
 #[cfg(test)]
 mod tests {
-    use crate::array::Array;
     use crate::hardware::cpu::CpuHardware;
-    use crate::operator::div::Div;
-    use crate::operator::Operator;
-    use std::cell::RefCell;
+    use crate::operator::div::*;
 
     #[test]
-    fn test_div_op() {
-        let hw = RefCell::new(CpuHardware::new());
+    fn test_properties() {
         let op = Div::new();
         assert_eq!(op.name(), "Div");
         assert_eq!(op.input_size(), 2);
-        let inputs = vec![Array::scalar_f32(&hw, 1.), Array::scalar_f32(&hw, 2.)];
+    }
+
+    #[rustfmt::skip]
+    #[test]
+    fn test_perform_shape() {
+        let op = Div::new();
+        assert_eq!(op.perform_shape(&[&Shape::new([]), &Shape::new([])]), Ok(Shape::new([])));
+        assert_eq!(op.perform_shape(&[&Shape::new([0]), &Shape::new([0])]), Ok(Shape::new([0])));
+        assert_eq!(op.perform_shape(&[&Shape::new([3]), &Shape::new([3])]), Ok(Shape::new([3])));
+    }
+
+    #[rustfmt::skip]
+    #[test]
+    fn test_perform_shape_invalid() {
+        let op = Div::new();
+        assert!(op.perform_shape(&[&Shape::new([]), &Shape::new([0])]).is_err());
+        assert!(op.perform_shape(&[&Shape::new([]), &Shape::new([3])]).is_err());
+        assert!(op.perform_shape(&[&Shape::new([0]), &Shape::new([])]).is_err());
+        assert!(op.perform_shape(&[&Shape::new([0]), &Shape::new([3])]).is_err());
+        assert!(op.perform_shape(&[&Shape::new([3]), &Shape::new([])]).is_err());
+        assert!(op.perform_shape(&[&Shape::new([3]), &Shape::new([0])]).is_err());
+    }
+
+    #[test]
+    fn test_perform_hardware() {
+        let hw1 = RefCell::new(CpuHardware::new());
+        let hw2 = RefCell::new(CpuHardware::new());
+        let op = Div::new();
+
+        assert!(ptr::eq(op.perform_hardware(&[&hw1, &hw1]).unwrap(), &hw1));
+        assert!(ptr::eq(op.perform_hardware(&[&hw2, &hw2]).unwrap(), &hw2));
+        assert!(op.perform_hardware(&[&hw1, &hw2]).is_err());
+    }
+
+    #[test]
+    fn test_perform() {
+        let hw = RefCell::new(CpuHardware::new());
+        let op = Div::new();
+        let lhs = Array::scalar_f32(&hw, 1.);
+        let rhs = Array::scalar_f32(&hw, 2.);
         let expected = Array::scalar_f32(&hw, 0.5);
-        let observed = op.perform(&inputs.iter().collect::<Vec<_>>()).unwrap();
+        let observed = op.perform(&[&lhs, &rhs]).unwrap();
         assert_eq!(observed.shape(), expected.shape());
         assert_eq!(observed.get_scalar_f32(), expected.get_scalar_f32());
     }
