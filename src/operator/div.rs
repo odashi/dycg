@@ -25,17 +25,23 @@ impl<'hw> Operator<'hw> for Div {
         inputs[0].elementwise_div_f32(inputs[1])
     }
 
-    fn gradient<'op: 'g, 'g>(
+    fn get_gradient_fn(&self) -> Option<Box<dyn Gradient>> {
+        Some(Box::new(DivGrad {}))
+    }
+}
+
+/// Gradient for Div.
+struct DivGrad;
+
+impl Gradient for DivGrad {
+    fn perform<'hw: 'op, 'op: 'g, 'g>(
         &self,
         x: &[Node<'hw, 'op, 'g>],
         y: Node<'hw, 'op, 'g>,
         gy: Node<'hw, 'op, 'g>,
-    ) -> Result<Vec<Node<'hw, 'op, 'g>>>
-    where
-        'hw: 'op,
-    {
+    ) -> Vec<Node<'hw, 'op, 'g>> {
         let gx0 = gy / x[1];
-        Ok(vec![gx0, -y * gx0])
+        vec![gx0, -y * gx0]
     }
 }
 

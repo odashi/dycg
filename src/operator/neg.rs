@@ -25,16 +25,22 @@ impl<'hw> Operator<'hw> for Neg {
         Ok(inputs[0].elementwise_neg_f32())
     }
 
-    fn gradient<'op: 'g, 'g>(
+    fn get_gradient_fn(&self) -> Option<Box<dyn Gradient>> {
+        Some(Box::new(NegGrad {}))
+    }
+}
+
+/// Gradient for Neg.
+struct NegGrad;
+
+impl Gradient for NegGrad {
+    fn perform<'hw: 'op, 'op: 'g, 'g>(
         &self,
         _x: &[Node<'hw, 'op, 'g>],
         _y: Node<'hw, 'op, 'g>,
         gy: Node<'hw, 'op, 'g>,
-    ) -> Result<Vec<Node<'hw, 'op, 'g>>>
-    where
-        'hw: 'op,
-    {
-        Ok(vec![-gy])
+    ) -> Vec<Node<'hw, 'op, 'g>> {
+        vec![-gy]
     }
 }
 
