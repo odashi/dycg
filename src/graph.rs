@@ -24,8 +24,8 @@ impl<'hw> ArrayPlaceholder<'hw> {
     /// A reference to the inner `Shape` object.
     pub(crate) fn shape(&self) -> &Shape {
         match self {
-            Self::Unassigned(ref shape, _) => shape,
-            Self::Assigned(ref array) => array.shape(),
+            Self::Unassigned(shape, _) => shape,
+            Self::Assigned(array) => array.shape(),
         }
     }
 
@@ -37,7 +37,7 @@ impl<'hw> ArrayPlaceholder<'hw> {
     pub(crate) fn hardware(&self) -> &'hw RefCell<dyn Hardware> {
         match self {
             Self::Unassigned(_, hardware) => hardware,
-            Self::Assigned(ref array) => array.hardware(),
+            Self::Assigned(array) => array.hardware(),
         }
     }
 
@@ -50,7 +50,7 @@ impl<'hw> ArrayPlaceholder<'hw> {
     pub(crate) fn array(&self) -> Option<&Array<'hw>> {
         match self {
             Self::Unassigned(_, _) => None,
-            Self::Assigned(ref array) => Some(array),
+            Self::Assigned(array) => Some(array),
         }
     }
 }

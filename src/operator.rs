@@ -85,6 +85,19 @@ pub(crate) trait Operator<'hw> {
     /// * `Err(Error)` - Some error occurred during the process.
     fn perform(&self, inputs: &[&Array<'hw>]) -> Result<Array<'hw>>;
 
+    /// Obtains the gradient function.
+    ///
+    /// # Returns:
+    ///
+    /// * `Some(Box<dyn Gradient>)` - Gradient function of this operator.
+    /// * `None` - Gradient is not implemented for this operator.
+    fn get_gradient_fn(&self) -> Option<Box<dyn Gradient>> {
+        None
+    }
+}
+
+/// Interface of the gradient function.
+pub(crate) trait Gradient {
     /// Constructs the gradient graph.
     ///
     /// # Arguments:
@@ -102,20 +115,12 @@ pub(crate) trait Operator<'hw> {
     /// Resulting nodes usually represent gy * dy/dx[i] according to the chain rule of derivatives,
     /// but operators can implement other calculation instead for representing unusual gradient
     /// manipulations.
-    fn gradient<'op: 'g, 'g>(
+    fn perform<'hw: 'op, 'op: 'g, 'g>(
         &self,
-        _x: &[Node<'hw, 'op, 'g>],
-        _y: Node<'hw, 'op, 'g>,
-        _gy: Node<'hw, 'op, 'g>,
-    ) -> Result<Vec<Node<'hw, 'op, 'g>>>
-    where
-        'hw: 'op,
-    {
-        Err(Error::NotSupported(format!(
-            "No gradient definition for {}",
-            self.name(),
-        )))
-    }
+        x: &[Node<'hw, 'op, 'g>],
+        y: Node<'hw, 'op, 'g>,
+        gy: Node<'hw, 'op, 'g>,
+    ) -> Vec<Node<'hw, 'op, 'g>>;
 }
 
 // Nullary operators
