@@ -47,7 +47,6 @@ impl Gradient for NegGrad {
 #[cfg(test)]
 mod tests {
     use crate::hardware::cpu::CpuHardware;
-    use crate::make_shape;
     use crate::operator::neg::*;
 
     #[test]
@@ -62,9 +61,9 @@ mod tests {
     fn test_perform_shape() {
         let op = Neg::new();
         
-        assert_eq!(op.perform_shape(&[&make_shape![]]), Ok(make_shape![]));
-        assert_eq!(op.perform_shape(&[&make_shape![0]]), Ok(make_shape![0]));
-        assert_eq!(op.perform_shape(&[&make_shape![3]]), Ok(make_shape![3]));
+        assert_eq!(op.perform_shape(&[&Shape::new([])]), Ok(Shape::new([])));
+        assert_eq!(op.perform_shape(&[&Shape::new([0])]), Ok(Shape::new([0])));
+        assert_eq!(op.perform_shape(&[&Shape::new([3])]), Ok(Shape::new([3])));
     }
 
     #[test]

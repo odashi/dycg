@@ -47,7 +47,6 @@ impl Gradient for MulGrad {
 #[cfg(test)]
 mod tests {
     use crate::hardware::cpu::CpuHardware;
-    use crate::make_shape;
     use crate::operator::mul::*;
 
     #[test]
@@ -61,21 +60,21 @@ mod tests {
     #[test]
     fn test_perform_shape() {
         let op = Mul::new();
-        assert_eq!(op.perform_shape(&[&make_shape![], &make_shape![]]), Ok(make_shape![]));
-        assert_eq!(op.perform_shape(&[&make_shape![0], &make_shape![0]]), Ok(make_shape![0]));
-        assert_eq!(op.perform_shape(&[&make_shape![3], &make_shape![3]]), Ok(make_shape![3]));
+        assert_eq!(op.perform_shape(&[&Shape::new([]), &Shape::new([])]), Ok(Shape::new([])));
+        assert_eq!(op.perform_shape(&[&Shape::new([0]), &Shape::new([0])]), Ok(Shape::new([0])));
+        assert_eq!(op.perform_shape(&[&Shape::new([3]), &Shape::new([3])]), Ok(Shape::new([3])));
     }
 
     #[rustfmt::skip]
     #[test]
     fn test_perform_shape_invalid() {
         let op = Mul::new();
-        assert!(op.perform_shape(&[&make_shape![], &make_shape![0]]).is_err());
-        assert!(op.perform_shape(&[&make_shape![], &make_shape![3]]).is_err());
-        assert!(op.perform_shape(&[&make_shape![0], &make_shape![]]).is_err());
-        assert!(op.perform_shape(&[&make_shape![0], &make_shape![3]]).is_err());
-        assert!(op.perform_shape(&[&make_shape![3], &make_shape![]]).is_err());
-        assert!(op.perform_shape(&[&make_shape![3], &make_shape![0]]).is_err());
+        assert!(op.perform_shape(&[&Shape::new([]), &Shape::new([0])]).is_err());
+        assert!(op.perform_shape(&[&Shape::new([]), &Shape::new([3])]).is_err());
+        assert!(op.perform_shape(&[&Shape::new([0]), &Shape::new([])]).is_err());
+        assert!(op.perform_shape(&[&Shape::new([0]), &Shape::new([3])]).is_err());
+        assert!(op.perform_shape(&[&Shape::new([3]), &Shape::new([])]).is_err());
+        assert!(op.perform_shape(&[&Shape::new([3]), &Shape::new([0])]).is_err());
     }
 
     #[test]

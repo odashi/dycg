@@ -23,12 +23,14 @@ pub struct Shape {
 }
 
 impl Shape {
-    /// Common function to create a new `Shape` with calculating inner statistics.
+    /// Creates a new n-dimensional shape.
+    ///
+    /// This function takes a fixed-length array so that the compiler is expected to generate
+    /// highly-optimized machine code for the particular value of `N`.
     ///
     /// # Arguments
     ///
-    /// * `num_dimensions` - Number of dimensions in the new shape.
-    /// * `dimensions` - Number of elements for each dimension.
+    /// * `dimensions` - Number of elements for each axis.
     ///
     /// # Returns
     ///
@@ -36,38 +38,59 @@ impl Shape {
     ///
     /// # Panics
     ///
-    /// `num_dimensions` exceeds MAX_NUM_DIMENSIONS.
-    fn new_inner(num_dimensions: usize, dimensions: [usize; MAX_NUM_DIMENSIONS]) -> Self {
+    /// The const parameter `N` is larger than `MAX_NUM_DIMENSIONS`.
+    pub fn new<const N: usize>(dimensions: [usize; N]) -> Self {
+        assert!(
+            N <= MAX_NUM_DIMENSIONS,
+            "Number of dimensions must be equal to or less than {}, but got {}.",
+            MAX_NUM_DIMENSIONS,
+            N
+        );
+        let mut actual_dimensions = [0usize; MAX_NUM_DIMENSIONS];
+        let mut num_elements = 1usize;
+        for (ad, d) in actual_dimensions.iter_mut().zip(dimensions.iter()) {
+            *ad = *d;
+            num_elements *= d;
+        }
         Self {
-            num_dimensions,
-            dimensions,
-            num_elements: dimensions[..num_dimensions].iter().product(),
+            num_dimensions: N,
+            dimensions: actual_dimensions,
+            num_elements,
         }
     }
 
-    /// Creates a new 0-dimensional shape.
-    ///
-    /// 0-dimensional shape has no dimension values, and has exactly 1 element.
-    /// This shape usually represents scalar values.
-    ///
-    /// # Returns
-    ///
-    /// A new `Shape` object.
-    pub fn new0() -> Self {
-        Self::new_inner(0, [0; MAX_NUM_DIMENSIONS])
-    }
-
-    /// Creates a new 1-dimensional shape.
+    /// Creates a new n-dimensional shape from a slice.
     ///
     /// # Arguments
     ///
-    /// * `axis0` - Number of elements in the 0th axis.
+    /// * `dimensions` - Number of elements for each axis.
     ///
     /// # Returns
     ///
     /// A new `Shape` object.
-    pub fn new1(axis0: usize) -> Self {
-        Self::new_inner(1, [axis0, 0, 0, 0, 0, 0, 0, 0])
+    ///
+    /// # Panics
+    ///
+    /// The length of the `dimensions` is larger than `MAX_NUM_DIMENSIONS`.
+    pub fn from_slice(dimensions: &[usize]) -> Self {
+        let num_dimensions = dimensions.len();
+        assert!(
+            num_dimensions <= MAX_NUM_DIMENSIONS,
+            "Number of dimensions must be equal to or less than {}, but got {}.",
+            MAX_NUM_DIMENSIONS,
+            num_dimensions
+        );
+        let mut actual_dimensions = [0usize; MAX_NUM_DIMENSIONS];
+        let mut num_elements = 1usize;
+        for (ad, d) in actual_dimensions.iter_mut().zip(dimensions.iter()) {
+            *ad = *d;
+            num_elements *= d;
+        }
+        Self {
+            num_dimensions,
+            dimensions: actual_dimensions,
+            num_elements,
+        }
     }
 
     /// Returns the number of dimensions of this shape.
@@ -214,142 +237,5 @@ impl fmt::Display for Shape {
     }
 }
 
-/// Macro rules to generate a new Shape object.
-#[macro_export]
-macro_rules! make_shape {
-    () => {
-        crate::shape::Shape::new0()
-    };
-    ( $axis0:expr ) => {
-        crate::shape::Shape::new1($axis0)
-    };
-}
-
 #[cfg(test)]
-mod tests {
-    use crate::shape::{Shape, MAX_NUM_DIMENSIONS};
-
-    #[test]
-    fn test_new0() {
-        let shape = Shape::new0();
-        assert_eq!(shape.num_dimensions, 0);
-        assert_eq!(shape.dimensions, [0; MAX_NUM_DIMENSIONS]);
-        assert_eq!(shape.num_elements, 1);
-    }
-
-    #[test]
-    fn test_new1() {
-        let shape = Shape::new1(3);
-        assert_eq!(shape.num_dimensions, 1);
-        assert_eq!(shape.dimensions, [3, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(shape.num_elements, 3);
-    }
-
-    #[test]
-    fn test_num_dimensions() {
-        assert_eq!(Shape::new0().num_dimensions(), 0);
-        assert_eq!(Shape::new1(3).num_dimensions(), 1);
-    }
-
-    #[test]
-    fn test_check_index() {
-        assert!(Shape::new0().check_index(0).is_err());
-        assert!(Shape::new1(3).check_index(0).is_ok());
-        assert!(Shape::new1(3).check_index(1).is_err());
-    }
-
-    #[test]
-    fn test_check_is_scalar() {
-        assert!(Shape::new0().check_is_scalar().is_ok());
-        assert!(Shape::new1(3).check_is_scalar().is_err());
-    }
-
-    #[test]
-    fn test_dimension_unchecked() {
-        unsafe {
-            assert_eq!(Shape::new1(3).dimension_unchecked(0), 3);
-        }
-    }
-
-    #[test]
-    fn test_dimension() {
-        assert!(Shape::new0().dimension(0).is_err());
-        assert_eq!(Shape::new1(3).dimension(0), Ok(3));
-        assert!(Shape::new1(3).dimension(1).is_err());
-    }
-
-    #[test]
-    fn test_num_elements() {
-        assert_eq!(Shape::new0().num_elements(), 1);
-        assert_eq!(Shape::new1(0).num_elements(), 0);
-        assert_eq!(Shape::new1(3).num_elements(), 3);
-    }
-
-    #[test]
-    fn test_memory_size() {
-        // 0-dimensional
-        assert_eq!(Shape::new0().memory_size::<bool>(), 1);
-        assert_eq!(Shape::new0().memory_size::<i8>(), 1);
-        assert_eq!(Shape::new0().memory_size::<i16>(), 2);
-        assert_eq!(Shape::new0().memory_size::<i32>(), 4);
-        assert_eq!(Shape::new0().memory_size::<i64>(), 8);
-        assert_eq!(Shape::new0().memory_size::<u8>(), 1);
-        assert_eq!(Shape::new0().memory_size::<u16>(), 2);
-        assert_eq!(Shape::new0().memory_size::<u32>(), 4);
-        assert_eq!(Shape::new0().memory_size::<u64>(), 8);
-        assert_eq!(Shape::new0().memory_size::<f32>(), 4);
-        assert_eq!(Shape::new0().memory_size::<f64>(), 8);
-
-        // 1-dimensional
-        assert_eq!(Shape::new1(0).memory_size::<bool>(), 0);
-        assert_eq!(Shape::new1(0).memory_size::<i8>(), 0);
-        assert_eq!(Shape::new1(0).memory_size::<i16>(), 0);
-        assert_eq!(Shape::new1(0).memory_size::<i32>(), 0);
-        assert_eq!(Shape::new1(0).memory_size::<i64>(), 0);
-        assert_eq!(Shape::new1(0).memory_size::<u8>(), 0);
-        assert_eq!(Shape::new1(0).memory_size::<u16>(), 0);
-        assert_eq!(Shape::new1(0).memory_size::<u32>(), 0);
-        assert_eq!(Shape::new1(0).memory_size::<u64>(), 0);
-        assert_eq!(Shape::new1(0).memory_size::<f32>(), 0);
-        assert_eq!(Shape::new1(0).memory_size::<f64>(), 0);
-
-        assert_eq!(Shape::new1(3).memory_size::<bool>(), 3);
-        assert_eq!(Shape::new1(3).memory_size::<i8>(), 3);
-        assert_eq!(Shape::new1(3).memory_size::<i16>(), 6);
-        assert_eq!(Shape::new1(3).memory_size::<i32>(), 12);
-        assert_eq!(Shape::new1(3).memory_size::<i64>(), 24);
-        assert_eq!(Shape::new1(3).memory_size::<u8>(), 3);
-        assert_eq!(Shape::new1(3).memory_size::<u16>(), 6);
-        assert_eq!(Shape::new1(3).memory_size::<u32>(), 12);
-        assert_eq!(Shape::new1(3).memory_size::<u64>(), 24);
-        assert_eq!(Shape::new1(3).memory_size::<f32>(), 12);
-        assert_eq!(Shape::new1(3).memory_size::<f64>(), 24);
-    }
-
-    #[test]
-    fn test_elementwise() {
-        assert_eq!(Shape::new0().elementwise(&Shape::new0()), Ok(Shape::new0()));
-        assert!(Shape::new0().elementwise(&Shape::new1(3)).is_err());
-        assert!(Shape::new1(3).elementwise(&Shape::new0()).is_err());
-        assert!(Shape::new1(3).elementwise(&Shape::new1(0)).is_err());
-        assert!(Shape::new1(3).elementwise(&Shape::new1(1)).is_err());
-        assert_eq!(
-            Shape::new1(3).elementwise(&Shape::new1(3)),
-            Ok(Shape::new1(3))
-        );
-    }
-
-    #[test]
-    fn test_fmt() {
-        assert_eq!(format!("{}", Shape::new0()), "()");
-        assert_eq!(format!("{}", Shape::new1(0)), "(0)");
-        assert_eq!(format!("{}", Shape::new1(3)), "(3)");
-    }
-
-    #[test]
-    fn test_make_shape() {
-        assert_eq!(make_shape![], Shape::new0());
-        assert_eq!(make_shape![0], Shape::new1(0));
-        assert_eq!(make_shape![3], Shape::new1(3));
-    }
-}
+mod tests;

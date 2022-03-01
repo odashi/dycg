@@ -1,5 +1,4 @@
 use crate::hardware::cpu::CpuHardware;
-use crate::make_shape;
 use crate::node::*;
 
 #[test]
@@ -23,7 +22,7 @@ fn test_self() {
     let gx = grad(x, &[x]).unwrap();
     assert_eq!(gx.len(), 1);
 
-    assert_eq!(gx[0].shape(), make_shape![]);
+    assert_eq!(gx[0].shape(), Shape::new([]));
     assert!(ptr::eq(gx[0].hardware(), &hw));
 
     // dx/dx == 1
@@ -41,7 +40,7 @@ fn test_unrelated() {
     let gx = grad(y, &[x]).unwrap();
     assert_eq!(gx.len(), 1);
 
-    assert_eq!(gx[0].shape(), make_shape![]);
+    assert_eq!(gx[0].shape(), Shape::new([]));
     assert!(ptr::eq(gx[0].hardware(), &hw));
 
     // dy/dx == 0 since y is not calculated by x.
@@ -59,7 +58,7 @@ fn test_neg() {
     let gx = grad(y, &[x]).unwrap();
     assert_eq!(gx.len(), 1);
 
-    assert_eq!(gx[0].shape(), make_shape![]);
+    assert_eq!(gx[0].shape(), Shape::new([]));
     assert!(ptr::eq(gx[0].hardware(), &hw));
 
     // dy/dx == -1
@@ -78,8 +77,8 @@ fn test_add() {
     let gx = grad(y, &[a, b]).unwrap();
     assert_eq!(gx.len(), 2);
 
-    assert_eq!(gx[0].shape(), make_shape![]);
-    assert_eq!(gx[1].shape(), make_shape![]);
+    assert_eq!(gx[0].shape(), Shape::new([]));
+    assert_eq!(gx[1].shape(), Shape::new([]));
     assert!(ptr::eq(gx[0].hardware(), &hw));
     assert!(ptr::eq(gx[1].hardware(), &hw));
 
@@ -101,8 +100,8 @@ fn test_sub() {
     let gx = grad(y, &[a, b]).unwrap();
     assert_eq!(gx.len(), 2);
 
-    assert_eq!(gx[0].shape(), make_shape![]);
-    assert_eq!(gx[1].shape(), make_shape![]);
+    assert_eq!(gx[0].shape(), Shape::new([]));
+    assert_eq!(gx[1].shape(), Shape::new([]));
     assert!(ptr::eq(gx[0].hardware(), &hw));
     assert!(ptr::eq(gx[1].hardware(), &hw));
 
@@ -124,8 +123,8 @@ fn test_mul() {
     let gx = grad(y, &[a, b]).unwrap();
     assert_eq!(gx.len(), 2);
 
-    assert_eq!(gx[0].shape(), make_shape![]);
-    assert_eq!(gx[1].shape(), make_shape![]);
+    assert_eq!(gx[0].shape(), Shape::new([]));
+    assert_eq!(gx[1].shape(), Shape::new([]));
     assert!(ptr::eq(gx[0].hardware(), &hw));
     assert!(ptr::eq(gx[1].hardware(), &hw));
 
@@ -148,7 +147,7 @@ fn test_mul_quadratic() {
     let gx = grad(y, &[x]).unwrap();
     assert_eq!(gx.len(), 1);
 
-    assert_eq!(gx[0].shape(), make_shape![]);
+    assert_eq!(gx[0].shape(), Shape::new([]));
     assert!(ptr::eq(gx[0].hardware(), &hw));
 
     // dy/dx == 2x, internally calculated by x + x.
@@ -167,8 +166,8 @@ fn test_div() {
     let gx = grad(y, &[a, b]).unwrap();
     assert_eq!(gx.len(), 2);
 
-    assert_eq!(gx[0].shape(), make_shape![]);
-    assert_eq!(gx[1].shape(), make_shape![]);
+    assert_eq!(gx[0].shape(), Shape::new([]));
+    assert_eq!(gx[1].shape(), Shape::new([]));
     assert!(ptr::eq(gx[0].hardware(), &hw));
     assert!(ptr::eq(gx[1].hardware(), &hw));
 
@@ -191,9 +190,9 @@ fn test_multiple_computation() {
     let gx = grad(y, &[a, b, c]).unwrap();
     assert_eq!(gx.len(), 3);
 
-    assert_eq!(gx[0].shape(), make_shape![]);
-    assert_eq!(gx[1].shape(), make_shape![]);
-    assert_eq!(gx[2].shape(), make_shape![]);
+    assert_eq!(gx[0].shape(), Shape::new([]));
+    assert_eq!(gx[1].shape(), Shape::new([]));
+    assert_eq!(gx[2].shape(), Shape::new([]));
     assert!(ptr::eq(gx[0].hardware(), &hw));
     assert!(ptr::eq(gx[1].hardware(), &hw));
     assert!(ptr::eq(gx[2].hardware(), &hw));
@@ -219,10 +218,10 @@ fn test_higher_order_gradients() {
     let gx3 = grad(gx2, &[x]).unwrap()[0];
     let gx4 = grad(gx3, &[x]).unwrap()[0];
 
-    assert_eq!(gx1.shape(), make_shape![]);
-    assert_eq!(gx2.shape(), make_shape![]);
-    assert_eq!(gx3.shape(), make_shape![]);
-    assert_eq!(gx4.shape(), make_shape![]);
+    assert_eq!(gx1.shape(), Shape::new([]));
+    assert_eq!(gx2.shape(), Shape::new([]));
+    assert_eq!(gx3.shape(), Shape::new([]));
+    assert_eq!(gx4.shape(), Shape::new([]));
     assert!(ptr::eq(gx1.hardware(), &hw));
     assert!(ptr::eq(gx2.hardware(), &hw));
     assert!(ptr::eq(gx3.hardware(), &hw));

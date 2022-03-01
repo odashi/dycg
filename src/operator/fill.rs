@@ -54,13 +54,12 @@ impl<'hw> Operator<'hw> for Fill<'hw> {
 #[cfg(test)]
 mod tests {
     use crate::hardware::cpu::CpuHardware;
-    use crate::make_shape;
     use crate::operator::fill::*;
 
     #[test]
     fn test_properties() {
         let hw = RefCell::new(CpuHardware::new());
-        let op = Fill::new(&hw, make_shape![], 123.);
+        let op = Fill::new(&hw, Shape::new([]), 123.);
         assert_eq!(op.name(), "Fill");
         assert_eq!(op.input_size(), 0);
     }
@@ -68,36 +67,36 @@ mod tests {
     #[test]
     fn test_perform_shape_scalar() {
         let hw = RefCell::new(CpuHardware::new());
-        let op = Fill::new(&hw, make_shape![], 123.);
-        assert_eq!(op.perform_shape(&[]), Ok(make_shape![]));
+        let op = Fill::new(&hw, Shape::new([]), 123.);
+        assert_eq!(op.perform_shape(&[]), Ok(Shape::new([])));
     }
 
     #[test]
     fn test_perform_shape_0() {
         let hw = RefCell::new(CpuHardware::new());
-        let op = Fill::new(&hw, make_shape![0], 123.);
-        assert_eq!(op.perform_shape(&[]), Ok(make_shape![0]));
+        let op = Fill::new(&hw, Shape::new([0]), 123.);
+        assert_eq!(op.perform_shape(&[]), Ok(Shape::new([0])));
     }
 
     #[test]
     fn test_perform_shape_n() {
         let hw = RefCell::new(CpuHardware::new());
-        let op = Fill::new(&hw, make_shape![3], 123.);
-        assert_eq!(op.perform_shape(&[]), Ok(make_shape![3]));
+        let op = Fill::new(&hw, Shape::new([3]), 123.);
+        assert_eq!(op.perform_shape(&[]), Ok(Shape::new([3])));
     }
 
     #[test]
     fn test_perform_hardware() {
         let hw = RefCell::new(CpuHardware::new());
-        let op = Fill::new(&hw, make_shape![], 123.);
+        let op = Fill::new(&hw, Shape::new([]), 123.);
         assert!(ptr::eq(op.perform_hardware(&[]).unwrap(), &hw));
     }
 
     #[test]
     fn test_perform_scalar() {
         let hw = RefCell::new(CpuHardware::new());
-        let op = Fill::new(&hw, make_shape![], 123.);
-        let expected = Array::fill_f32(&hw, make_shape![], 123.);
+        let op = Fill::new(&hw, Shape::new([]), 123.);
+        let expected = Array::fill_f32(&hw, Shape::new([]), 123.);
         let observed = op.perform(&[]).unwrap();
         assert_eq!(observed.shape(), expected.shape());
         assert_eq!(observed.get_scalar_f32(), expected.get_scalar_f32());
@@ -106,8 +105,8 @@ mod tests {
     #[test]
     fn test_perform_0() {
         let hw = RefCell::new(CpuHardware::new());
-        let op = Fill::new(&hw, make_shape![0], 123.);
-        let expected = Array::fill_f32(&hw, make_shape![0], 123.);
+        let op = Fill::new(&hw, Shape::new([0]), 123.);
+        let expected = Array::fill_f32(&hw, Shape::new([0]), 123.);
         let observed = op.perform(&[]).unwrap();
         assert_eq!(observed.shape(), expected.shape());
         assert_eq!(observed.get_values_f32(), expected.get_values_f32());
@@ -116,8 +115,8 @@ mod tests {
     #[test]
     fn test_perform_n() {
         let hw = RefCell::new(CpuHardware::new());
-        let op = Fill::new(&hw, make_shape![3], 123.);
-        let expected = Array::fill_f32(&hw, make_shape![3], 123.);
+        let op = Fill::new(&hw, Shape::new([3]), 123.);
+        let expected = Array::fill_f32(&hw, Shape::new([3]), 123.);
         let observed = op.perform(&[]).unwrap();
         assert_eq!(observed.shape(), expected.shape());
         assert_eq!(observed.get_values_f32(), expected.get_values_f32());

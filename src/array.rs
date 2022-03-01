@@ -1,7 +1,6 @@
 use crate::buffer::Buffer;
 use crate::error::Error;
 use crate::hardware::Hardware;
-use crate::make_shape;
 use crate::result::Result;
 use crate::shape::Shape;
 use std::cell::RefCell;
@@ -191,7 +190,7 @@ impl<'hw> Array<'hw> {
     ///
     /// A new `Array` object representing a scalar value.
     pub fn scalar_f32(hardware: &'hw RefCell<dyn Hardware>, value: f32) -> Self {
-        let mut array = unsafe { Self::raw(hardware, make_shape![]) };
+        let mut array = unsafe { Self::raw(hardware, Shape::new([])) };
         array.set_scalar_f32(value).unwrap();
         array
     }
