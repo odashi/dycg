@@ -25,8 +25,8 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
     }
 
     pub fn from_scalar(
-        hardware: &'hw RefCell<dyn Hardware>,
         graph: &'g RefCell<Graph<'hw, 'op>>,
+        hardware: &'hw RefCell<dyn Hardware>,
         value: f32,
     ) -> Self {
         Self::new(
@@ -91,13 +91,13 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
     ///
     /// # Arguments
     ///
-    /// * `hardware` - `Hardware` object to hold the value.
     /// * `graph` - `Graph` object to register the operation.
+    /// * `hardware` - `Hardware` object to hold the value.
     /// * `shape` - `Shape` of the output array.
     /// * `value` - Value of each element in the output array.
     pub fn fill(
-        hardware: &'hw RefCell<dyn Hardware>,
         graph: &'g RefCell<Graph<'hw, 'op>>,
+        hardware: &'hw RefCell<dyn Hardware>,
         shape: Shape,
         value: f32,
     ) -> Self {
@@ -273,7 +273,7 @@ pub fn grad<'hw, 'op, 'g>(
 
     // Assigns the gradient of `y` == 1.
     *(unsafe { gradients.get_unchecked_mut(last_step_id) }) =
-        Some(Node::fill(y.hardware(), g, y.shape(), 1.));
+        Some(Node::fill(g, y.hardware(), y.shape(), 1.));
 
     // Performs backpropagation.
     for step_id in ((first_step_id + 1)..=last_step_id).rev() {
@@ -318,7 +318,7 @@ pub fn grad<'hw, 'op, 'g>(
                 Some(grad_node) => *grad_node,
                 // No gradient propagation occurred for this node,
                 // assuming that the gradient is 0.
-                None => Node::fill(node.hardware(), g, node.shape(), 0.),
+                None => Node::fill(g, node.hardware(), node.shape(), 0.),
             }
         })
         .collect::<Vec<_>>()
