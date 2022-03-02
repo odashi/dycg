@@ -128,12 +128,7 @@ impl<'hw: 'op, 'op: 'g, 'g> Eq for Node<'hw, 'op, 'g> {}
 /// Directly obtaining a scalar value from a node.
 impl<'hw: 'op, 'op: 'g, 'g> From<Node<'hw, 'op, 'g>> for f32 {
     fn from(node: Node<'hw, 'op, 'g>) -> Self {
-        node.graph
-            .borrow_mut()
-            .calculate(node.step_id)
-            .unwrap()
-            .get_scalar_f32()
-            .unwrap()
+        node.calculate().unwrap().get_scalar_f32().unwrap()
     }
 }
 
