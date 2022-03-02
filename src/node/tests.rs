@@ -5,8 +5,8 @@ use crate::node::*;
 fn test_steps() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
-    let lhs = Node::from_scalar(&hw, &g, 1.);
-    let rhs = Node::from_scalar(&hw, &g, 2.);
+    let lhs = Node::from_scalar(&g, &hw, 1.);
+    let rhs = Node::from_scalar(&g, &hw, 2.);
     let ret = lhs + rhs;
 
     assert_eq!(lhs, Node::new(&g, 0));
@@ -37,7 +37,7 @@ fn test_neg() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let src = Node::from_scalar(&hw, &g, 42.);
+    let src = Node::from_scalar(&g, &hw, 42.);
     let dest = -src;
 
     assert_eq!(src.shape(), Shape::new([]));
@@ -53,8 +53,8 @@ fn test_add() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let lhs = Node::from_scalar(&hw, &g, 1.);
-    let rhs = Node::from_scalar(&hw, &g, 2.);
+    let lhs = Node::from_scalar(&g, &hw, 1.);
+    let rhs = Node::from_scalar(&g, &hw, 2.);
     let ret = lhs + rhs;
 
     assert_eq!(lhs.shape(), Shape::new([]));
@@ -72,8 +72,8 @@ fn test_sub() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let lhs = Node::from_scalar(&hw, &g, 1.);
-    let rhs = Node::from_scalar(&hw, &g, 2.);
+    let lhs = Node::from_scalar(&g, &hw, 1.);
+    let rhs = Node::from_scalar(&g, &hw, 2.);
     let ret = lhs - rhs;
 
     assert_eq!(lhs.shape(), Shape::new([]));
@@ -91,8 +91,8 @@ fn test_mul() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let lhs = Node::from_scalar(&hw, &g, 1.);
-    let rhs = Node::from_scalar(&hw, &g, 2.);
+    let lhs = Node::from_scalar(&g, &hw, 1.);
+    let rhs = Node::from_scalar(&g, &hw, 2.);
     let ret = lhs * rhs;
 
     assert_eq!(lhs.shape(), Shape::new([]));
@@ -110,8 +110,8 @@ fn test_div() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let lhs = Node::from_scalar(&hw, &g, 1.);
-    let rhs = Node::from_scalar(&hw, &g, 2.);
+    let lhs = Node::from_scalar(&g, &hw, 1.);
+    let rhs = Node::from_scalar(&g, &hw, 2.);
     let ret = lhs / rhs;
 
     assert_eq!(lhs.shape(), Shape::new([]));
@@ -128,7 +128,7 @@ fn test_div() {
 fn test_fill_scalar() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
-    let ret = Node::fill(&hw, &g, Shape::new([]), 123.);
+    let ret = Node::fill(&g, &hw, Shape::new([]), 123.);
     assert_eq!(ret.shape(), Shape::new([]));
     assert!(ptr::eq(ret.hardware(), &hw));
     assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(123.));
@@ -138,7 +138,7 @@ fn test_fill_scalar() {
 fn test_fill_0() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
-    let ret = Node::fill(&hw, &g, Shape::new([0]), 123.);
+    let ret = Node::fill(&g, &hw, Shape::new([0]), 123.);
     assert_eq!(ret.shape(), Shape::new([0]));
     assert!(ptr::eq(ret.hardware(), &hw));
     assert_eq!(ret.calculate().unwrap().get_values_f32(), vec![]);
@@ -148,7 +148,7 @@ fn test_fill_0() {
 fn test_fill_n() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
-    let ret = Node::fill(&hw, &g, Shape::new([3]), 123.);
+    let ret = Node::fill(&g, &hw, Shape::new([3]), 123.);
     assert_eq!(ret.shape(), Shape::new([3]));
     assert!(ptr::eq(ret.hardware(), &hw));
     assert_eq!(
@@ -162,9 +162,9 @@ fn test_multiple_computation() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let a = Node::from_scalar(&hw, &g, 1.);
-    let b = Node::from_scalar(&hw, &g, 2.);
-    let c = Node::from_scalar(&hw, &g, 3.);
+    let a = Node::from_scalar(&g, &hw, 1.);
+    let b = Node::from_scalar(&g, &hw, 2.);
+    let c = Node::from_scalar(&g, &hw, 3.);
     let y = a + -b * c;
 
     assert_eq!(a.shape(), Shape::new([]));
