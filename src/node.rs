@@ -242,25 +242,29 @@ impl<'hw: 'op, 'op: 'g, 'g> std::ops::Div for Node<'hw, 'op, 'g> {
 ///
 /// New `Node`s representing the derivative dy/dx. The order of elements corresponds to that of
 /// `x`.
+///
+/// # Panics
+///
+/// * Attempting to calculate gradients between nodes on different graphs.
+/// * Some nodes hold invalid information.
 pub fn grad<'hw, 'op, 'g>(
     y: Node<'hw, 'op, 'g>,
     x: &[Node<'hw, 'op, 'g>],
-) -> Result<Vec<Node<'hw, 'op, 'g>>> {
+) -> Vec<Node<'hw, 'op, 'g>> {
     // Strategy: calculates gradients of every step between the earliest step in `x` and `y`.
     // This is redundant because some steps may not belong to the path between any of `x` and `y`,
     // But it may be enough efficient because the usual use-case of this function may be
     // "calculating graditns from the last step to every input."
 
     let g = y.graph;
-    if !x.iter().all(|node| ptr::eq(node.graph, g)) {
-        return Err(Error::InvalidNode(
-            "Gradients can not be calculated beyond different graphs.".to_string(),
-        ));
-    }
+    assert!(
+        x.iter().all(|node| ptr::eq(node.graph, g)),
+        "Gradients can not be calculated beyond different graphs."
+    );
 
     let first_step_id = match x.iter().map(|node| node.step_id).min() {
         Some(step_id) => step_id,
-        None => return Ok(vec![]), // `x` is empty. No need to calculate any gradients.
+        None => return vec![], // `x` is empty. No need to calculate any gradients.
     };
     let last_step_id = y.step_id;
 
@@ -308,7 +312,7 @@ pub fn grad<'hw, 'op, 'g>(
     }
 
     // Collects the nodes representing gradients of `x`.
-    Ok(x.iter()
+    x.iter()
         .map(|node| {
             match unsafe { gradients.get_unchecked(node.step_id) } {
                 Some(grad_node) => *grad_node,
@@ -317,7 +321,7 @@ pub fn grad<'hw, 'op, 'g>(
                 None => Node::fill(node.hardware(), g, node.shape(), 0.),
             }
         })
-        .collect::<Vec<_>>())
+        .collect::<Vec<_>>()
 }
 
 #[cfg(test)]
