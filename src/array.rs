@@ -410,12 +410,8 @@ impl<'hw> Clone for Array<'hw> {
     }
 }
 
-impl<'hw> TryFrom<&Array<'hw>> for ndarray::Array0<f32> {
-    type Error = crate::error::Error;
-    fn try_from(_src: &Array<'hw>) -> Result<Self> {
-        panic!("not implemented");
-    }
-}
-
 #[cfg(test)]
 mod tests;
+
+#[cfg(feature = "ndarray-support")]
+mod convert_ndarray;
