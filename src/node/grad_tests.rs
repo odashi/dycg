@@ -26,7 +26,7 @@ fn test_self() {
     assert!(ptr::eq(gx[0].hardware(), &hw));
 
     // dx/dx == 1
-    assert_eq!(f32::from(gx[0]), 1.);
+    assert_eq!(f32::try_from(gx[0]), Ok(1.));
 }
 
 #[test]
@@ -44,7 +44,7 @@ fn test_unrelated() {
     assert!(ptr::eq(gx[0].hardware(), &hw));
 
     // dy/dx == 0 since y is not calculated by x.
-    assert_eq!(f32::from(gx[0]), 0.);
+    assert_eq!(f32::try_from(gx[0]), Ok(0.));
 }
 
 #[test]
@@ -62,7 +62,7 @@ fn test_neg() {
     assert!(ptr::eq(gx[0].hardware(), &hw));
 
     // dy/dx == -1
-    assert_eq!(f32::from(gx[0]), -1.);
+    assert_eq!(f32::try_from(gx[0]), Ok(-1.));
 }
 
 #[test]
@@ -83,9 +83,9 @@ fn test_add() {
     assert!(ptr::eq(gx[1].hardware(), &hw));
 
     // dy/da == 1
-    assert_eq!(f32::from(gx[0]), 1.);
+    assert_eq!(f32::try_from(gx[0]), Ok(1.));
     // dy/db == 1
-    assert_eq!(f32::from(gx[1]), 1.);
+    assert_eq!(f32::try_from(gx[1]), Ok(1.));
 }
 
 #[test]
@@ -106,9 +106,9 @@ fn test_sub() {
     assert!(ptr::eq(gx[1].hardware(), &hw));
 
     // dy/da == 1
-    assert_eq!(f32::from(gx[0]), 1.);
+    assert_eq!(f32::try_from(gx[0]), Ok(1.));
     // dy/db == -1
-    assert_eq!(f32::from(gx[1]), -1.);
+    assert_eq!(f32::try_from(gx[1]), Ok(-1.));
 }
 
 #[test]
@@ -129,9 +129,9 @@ fn test_mul() {
     assert!(ptr::eq(gx[1].hardware(), &hw));
 
     // dy/da == b
-    assert_eq!(f32::from(gx[0]), 456.);
+    assert_eq!(f32::try_from(gx[0]), Ok(456.));
     // dy/db == a
-    assert_eq!(f32::from(gx[1]), 123.);
+    assert_eq!(f32::try_from(gx[1]), Ok(123.));
 }
 
 #[test]
@@ -151,7 +151,7 @@ fn test_mul_quadratic() {
     assert!(ptr::eq(gx[0].hardware(), &hw));
 
     // dy/dx == 2x, internally calculated by x + x.
-    assert_eq!(f32::from(gx[0]), 246.);
+    assert_eq!(f32::try_from(gx[0]), Ok(246.));
 }
 
 #[test]
@@ -172,9 +172,9 @@ fn test_div() {
     assert!(ptr::eq(gx[1].hardware(), &hw));
 
     // dy/da == 1/b
-    assert_eq!(f32::from(gx[0]), 0.5);
+    assert_eq!(f32::try_from(gx[0]), Ok(0.5));
     // dy/db == -a/b^2
-    assert_eq!(f32::from(gx[1]), -0.75);
+    assert_eq!(f32::try_from(gx[1]), Ok(-0.75));
 }
 
 #[test]
@@ -198,11 +198,11 @@ fn test_multiple_computation() {
     assert!(ptr::eq(gx[2].hardware(), &hw));
 
     // dy/da == 1
-    assert_eq!(f32::from(gx[0]), 1.);
+    assert_eq!(f32::try_from(gx[0]), Ok(1.));
     // dy/db == -c
-    assert_eq!(f32::from(gx[1]), -3.);
+    assert_eq!(f32::try_from(gx[1]), Ok(-3.));
     // dy/dc = -b
-    assert_eq!(f32::from(gx[2]), -2.);
+    assert_eq!(f32::try_from(gx[2]), Ok(-2.));
 }
 
 #[test]
@@ -228,13 +228,13 @@ fn test_higher_order_gradients() {
     assert!(ptr::eq(gx4.hardware(), &hw));
 
     // y' == dy/dx == 3x^2
-    assert_eq!(f32::from(gx1), 75.);
+    assert_eq!(f32::try_from(gx1), Ok(75.));
     // y'' == 6x
-    assert_eq!(f32::from(gx2), 30.);
+    assert_eq!(f32::try_from(gx2), Ok(30.));
     // y''' == 6
-    assert_eq!(f32::from(gx3), 6.);
+    assert_eq!(f32::try_from(gx3), Ok(6.));
     // y'''' == 0
-    assert_eq!(f32::from(gx4), 0.);
+    assert_eq!(f32::try_from(gx4), Ok(0.));
 }
 
 #[test]
@@ -263,22 +263,22 @@ fn test_gradient_of_multiple_variables() {
     let y_bba = grad(y_bb, &[a])[0];
     let y_bbb = grad(y_bb, &[b])[0];
 
-    assert_eq!(f32::from(y_a), 12.); // 2ab
-    assert_eq!(f32::from(y_b), 4.); // a^2
+    assert_eq!(f32::try_from(y_a), Ok(12.)); // 2ab
+    assert_eq!(f32::try_from(y_b), Ok(4.)); // a^2
 
-    assert_eq!(f32::from(y_aa), 6.); // 2b
-    assert_eq!(f32::from(y_ab), 4.); // 2a
-    assert_eq!(f32::from(y_ba), 4.); // 2a
-    assert_eq!(f32::from(y_bb), 0.); // 0
+    assert_eq!(f32::try_from(y_aa), Ok(6.)); // 2b
+    assert_eq!(f32::try_from(y_ab), Ok(4.)); // 2a
+    assert_eq!(f32::try_from(y_ba), Ok(4.)); // 2a
+    assert_eq!(f32::try_from(y_bb), Ok(0.)); // 0
 
-    assert_eq!(f32::from(y_aaa), 0.); // 0
-    assert_eq!(f32::from(y_aab), 2.); // 2
-    assert_eq!(f32::from(y_aba), 2.); // 2
-    assert_eq!(f32::from(y_abb), 0.); // 0
-    assert_eq!(f32::from(y_baa), 2.); // 2
-    assert_eq!(f32::from(y_bab), 0.); // 0
-    assert_eq!(f32::from(y_bba), 0.); // 0
-    assert_eq!(f32::from(y_bbb), 0.); // 0
+    assert_eq!(f32::try_from(y_aaa), Ok(0.)); // 0
+    assert_eq!(f32::try_from(y_aab), Ok(2.)); // 2
+    assert_eq!(f32::try_from(y_aba), Ok(2.)); // 2
+    assert_eq!(f32::try_from(y_abb), Ok(0.)); // 0
+    assert_eq!(f32::try_from(y_baa), Ok(2.)); // 2
+    assert_eq!(f32::try_from(y_bab), Ok(0.)); // 0
+    assert_eq!(f32::try_from(y_bba), Ok(0.)); // 0
+    assert_eq!(f32::try_from(y_bbb), Ok(0.)); // 0
 }
 
 #[test]
