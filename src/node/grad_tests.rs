@@ -8,7 +8,7 @@ fn test_empty() {
 
     let x = Node::from_scalar(&hw, &g, 42.);
 
-    let gx = grad(x, &[]).unwrap();
+    let gx = grad(x, &[]);
     assert!(gx.is_empty());
 }
 
@@ -19,7 +19,7 @@ fn test_self() {
 
     let x = Node::from_scalar(&hw, &g, 42.);
 
-    let gx = grad(x, &[x]).unwrap();
+    let gx = grad(x, &[x]);
     assert_eq!(gx.len(), 1);
 
     assert_eq!(gx[0].shape(), Shape::new([]));
@@ -37,7 +37,7 @@ fn test_unrelated() {
     let x = Node::from_scalar(&hw, &g, 42.);
     let y = Node::from_scalar(&hw, &g, 42.);
 
-    let gx = grad(y, &[x]).unwrap();
+    let gx = grad(y, &[x]);
     assert_eq!(gx.len(), 1);
 
     assert_eq!(gx[0].shape(), Shape::new([]));
@@ -55,7 +55,7 @@ fn test_neg() {
     let x = Node::from_scalar(&hw, &g, 42.);
     let y = -x;
 
-    let gx = grad(y, &[x]).unwrap();
+    let gx = grad(y, &[x]);
     assert_eq!(gx.len(), 1);
 
     assert_eq!(gx[0].shape(), Shape::new([]));
@@ -74,7 +74,7 @@ fn test_add() {
     let b = Node::from_scalar(&hw, &g, 456.);
     let y = a + b;
 
-    let gx = grad(y, &[a, b]).unwrap();
+    let gx = grad(y, &[a, b]);
     assert_eq!(gx.len(), 2);
 
     assert_eq!(gx[0].shape(), Shape::new([]));
@@ -97,7 +97,7 @@ fn test_sub() {
     let b = Node::from_scalar(&hw, &g, 456.);
     let y = a - b;
 
-    let gx = grad(y, &[a, b]).unwrap();
+    let gx = grad(y, &[a, b]);
     assert_eq!(gx.len(), 2);
 
     assert_eq!(gx[0].shape(), Shape::new([]));
@@ -120,7 +120,7 @@ fn test_mul() {
     let b = Node::from_scalar(&hw, &g, 456.);
     let y = a * b;
 
-    let gx = grad(y, &[a, b]).unwrap();
+    let gx = grad(y, &[a, b]);
     assert_eq!(gx.len(), 2);
 
     assert_eq!(gx[0].shape(), Shape::new([]));
@@ -144,7 +144,7 @@ fn test_mul_quadratic() {
     // so that gradient summation x + x is happened during backpropagation.
     let y = x * x;
 
-    let gx = grad(y, &[x]).unwrap();
+    let gx = grad(y, &[x]);
     assert_eq!(gx.len(), 1);
 
     assert_eq!(gx[0].shape(), Shape::new([]));
@@ -163,7 +163,7 @@ fn test_div() {
     let b = Node::from_scalar(&hw, &g, 2.);
     let y = a / b;
 
-    let gx = grad(y, &[a, b]).unwrap();
+    let gx = grad(y, &[a, b]);
     assert_eq!(gx.len(), 2);
 
     assert_eq!(gx[0].shape(), Shape::new([]));
@@ -187,7 +187,7 @@ fn test_multiple_computation() {
     let c = Node::from_scalar(&hw, &g, 3.);
     let y = a + -b * c;
 
-    let gx = grad(y, &[a, b, c]).unwrap();
+    let gx = grad(y, &[a, b, c]);
     assert_eq!(gx.len(), 3);
 
     assert_eq!(gx[0].shape(), Shape::new([]));
@@ -213,10 +213,10 @@ fn test_higher_order_gradients() {
     let x = Node::from_scalar(&hw, &g, 5.);
     let y = x * x * x;
 
-    let gx1 = grad(y, &[x]).unwrap()[0];
-    let gx2 = grad(gx1, &[x]).unwrap()[0];
-    let gx3 = grad(gx2, &[x]).unwrap()[0];
-    let gx4 = grad(gx3, &[x]).unwrap()[0];
+    let gx1 = grad(y, &[x])[0];
+    let gx2 = grad(gx1, &[x])[0];
+    let gx3 = grad(gx2, &[x])[0];
+    let gx4 = grad(gx3, &[x])[0];
 
     assert_eq!(gx1.shape(), Shape::new([]));
     assert_eq!(gx2.shape(), Shape::new([]));
@@ -246,22 +246,22 @@ fn test_gradient_of_multiple_variables() {
     let b = Node::from_scalar(&hw, &g, 3.);
     let y = a * a * b;
 
-    let y_a = grad(y, &[a]).unwrap()[0];
-    let y_b = grad(y, &[b]).unwrap()[0];
+    let y_a = grad(y, &[a])[0];
+    let y_b = grad(y, &[b])[0];
 
-    let y_aa = grad(y_a, &[a]).unwrap()[0];
-    let y_ab = grad(y_a, &[b]).unwrap()[0];
-    let y_ba = grad(y_b, &[a]).unwrap()[0];
-    let y_bb = grad(y_b, &[b]).unwrap()[0];
+    let y_aa = grad(y_a, &[a])[0];
+    let y_ab = grad(y_a, &[b])[0];
+    let y_ba = grad(y_b, &[a])[0];
+    let y_bb = grad(y_b, &[b])[0];
 
-    let y_aaa = grad(y_aa, &[a]).unwrap()[0];
-    let y_aab = grad(y_aa, &[b]).unwrap()[0];
-    let y_aba = grad(y_ab, &[a]).unwrap()[0];
-    let y_abb = grad(y_ab, &[b]).unwrap()[0];
-    let y_baa = grad(y_ba, &[a]).unwrap()[0];
-    let y_bab = grad(y_ba, &[b]).unwrap()[0];
-    let y_bba = grad(y_bb, &[a]).unwrap()[0];
-    let y_bbb = grad(y_bb, &[b]).unwrap()[0];
+    let y_aaa = grad(y_aa, &[a])[0];
+    let y_aab = grad(y_aa, &[b])[0];
+    let y_aba = grad(y_ab, &[a])[0];
+    let y_abb = grad(y_ab, &[b])[0];
+    let y_baa = grad(y_ba, &[a])[0];
+    let y_bab = grad(y_ba, &[b])[0];
+    let y_bba = grad(y_bb, &[a])[0];
+    let y_bbb = grad(y_bb, &[b])[0];
 
     assert_eq!(y_a.calculate().unwrap().get_scalar_f32(), Ok(12.)); // 2ab
     assert_eq!(y_b.calculate().unwrap().get_scalar_f32(), Ok(4.)); // a^2
@@ -279,4 +279,16 @@ fn test_gradient_of_multiple_variables() {
     assert_eq!(y_bab.calculate().unwrap().get_scalar_f32(), Ok(0.)); // 0
     assert_eq!(y_bba.calculate().unwrap().get_scalar_f32(), Ok(0.)); // 0
     assert_eq!(y_bbb.calculate().unwrap().get_scalar_f32(), Ok(0.)); // 0
+}
+
+#[test]
+#[should_panic]
+fn test_different_graph() {
+    let hw = RefCell::new(CpuHardware::new());
+    let g1 = RefCell::new(Graph::new());
+    let g2 = RefCell::new(Graph::new());
+
+    let x = Node::from_scalar(&hw, &g1, 2.);
+    let y = Node::from_scalar(&hw, &g2, 3.);
+    let _gx = grad(y, &[x])[0];
 }
