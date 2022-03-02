@@ -14,3 +14,4 @@ A dynamic computation graph library.
 """
 
 [dependencies]
+ndarray = "0.15.4"
