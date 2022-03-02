@@ -102,7 +102,7 @@ fn test_mul() {
     assert!(ptr::eq(rhs.hardware(), &hw));
     assert!(ptr::eq(ret.hardware(), &hw));
 
-    assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(2.));
+    assert_eq!(f32::from(ret), 2.);
 }
 
 #[test]
@@ -121,7 +121,7 @@ fn test_div() {
     assert!(ptr::eq(rhs.hardware(), &hw));
     assert!(ptr::eq(ret.hardware(), &hw));
 
-    assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(0.5));
+    assert_eq!(f32::from(ret), 0.5);
 }
 
 #[test]
@@ -131,7 +131,7 @@ fn test_fill_scalar() {
     let ret = Node::fill(&g, &hw, Shape::new([]), 123.);
     assert_eq!(ret.shape(), Shape::new([]));
     assert!(ptr::eq(ret.hardware(), &hw));
-    assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(123.));
+    assert_eq!(f32::from(ret), 123.);
 }
 
 #[test]
@@ -176,5 +176,5 @@ fn test_multiple_computation() {
     assert!(ptr::eq(c.hardware(), &hw));
     assert!(ptr::eq(y.hardware(), &hw));
 
-    assert_eq!(y.calculate().unwrap().get_scalar_f32(), Ok(-5.));
+    assert_eq!(f32::from(y), -5.);
 }

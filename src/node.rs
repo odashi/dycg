@@ -43,15 +43,6 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
         )
     }
 
-    pub fn to_scalar(&self) -> f32 {
-        self.graph
-            .borrow_mut()
-            .calculate(self.step_id)
-            .unwrap()
-            .get_scalar_f32()
-            .unwrap()
-    }
-
     pub fn check_graph(&self, others: &[&Self]) -> Result<&'g RefCell<Graph<'hw, 'op>>> {
         others
             .iter()
@@ -133,6 +124,18 @@ impl<'hw: 'op, 'op: 'g, 'g> PartialEq for Node<'hw, 'op, 'g> {
 }
 
 impl<'hw: 'op, 'op: 'g, 'g> Eq for Node<'hw, 'op, 'g> {}
+
+/// Directly obtaining a scalar value from a node.
+impl<'hw: 'op, 'op: 'g, 'g> From<Node<'hw, 'op, 'g>> for f32 {
+    fn from(node: Node<'hw, 'op, 'g>) -> Self {
+        node.graph
+            .borrow_mut()
+            .calculate(node.step_id)
+            .unwrap()
+            .get_scalar_f32()
+            .unwrap()
+    }
+}
 
 /// Unary "-" operator for `Node`.
 impl<'hw: 'op, 'op: 'g, 'g> std::ops::Neg for Node<'hw, 'op, 'g> {
