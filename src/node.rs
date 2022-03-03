@@ -74,7 +74,7 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
             .hardware()
     }
 
-    pub fn calculate(&self) -> Result<Array<'hw>> {
+    pub fn calculate(&self) -> crate::result::Result<Array<'hw>> {
         self.graph.borrow_mut().calculate(self.step_id)
     }
 

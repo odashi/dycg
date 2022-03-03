@@ -13,4 +13,8 @@ description = """
 A dynamic computation graph library.
 """
 
+[features]
+ndarray-support = ["ndarray"]
+
 [dependencies]
+ndarray = { version = "0.15.4", optional = true }
