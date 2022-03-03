@@ -97,7 +97,7 @@ impl Shape {
     ///
     /// # Returns
     ///
-    /// * `Ok((...))` - Tuple representation of dimensions.
+    /// * `Ok([usize; N])` - Array representation of dimensions.
     /// * `Err(Error)` - The shape is not N-dimensional.
     pub fn as_array<const N: usize>(&self) -> Result<[usize; N]> {
         if N == self.num_dimensions {
