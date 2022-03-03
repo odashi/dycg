@@ -412,3 +412,6 @@ impl<'hw> Clone for Array<'hw> {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(feature = "ndarray-support")]
+mod convert_ndarray;
