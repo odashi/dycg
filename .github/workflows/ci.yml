@@ -48,8 +48,6 @@ jobs:
         with:
           command: test
           args: --all-features
-<<<<<<< HEAD
-=======
 
   test-no-default-features:
     name: "Test: no default features"
@@ -63,7 +61,6 @@ jobs:
         with:
           command: test
           args: --no-default-features
->>>>>>> develop
 
   fmt:
     name: "Format"
@@ -105,8 +102,4 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
-<<<<<<< HEAD
-          args: --all-features -- -D warnings
-=======
           args: --no-default-features -- -D warnings
->>>>>>> develop
