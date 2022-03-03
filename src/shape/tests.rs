@@ -107,34 +107,33 @@ fn test_as_array() {
     let shape7 = Shape::from_slice(&DIMS7);
     let shape8 = Shape::from_slice(&DIMS8);
 
-    assert_eq!(shape0.as_array::<0>(), Ok([]));
-    assert_eq!(shape1.as_array::<1>(), Ok(DIMS1));
-    assert_eq!(shape2.as_array::<2>(), Ok(DIMS2));
-    assert_eq!(shape3.as_array::<3>(), Ok(DIMS3));
-    assert_eq!(shape4.as_array::<4>(), Ok(DIMS4));
-    assert_eq!(shape5.as_array::<5>(), Ok(DIMS5));
-    assert_eq!(shape6.as_array::<6>(), Ok(DIMS6));
-    assert_eq!(shape7.as_array::<7>(), Ok(DIMS7));
-    assert_eq!(shape8.as_array::<8>(), Ok(DIMS8));
+    assert_eq!(shape0.as_array0(), Ok([]));
+    assert_eq!(shape1.as_array1(), Ok(DIMS1));
+    assert_eq!(shape2.as_array2(), Ok(DIMS2));
+    assert_eq!(shape3.as_array3(), Ok(DIMS3));
+    assert_eq!(shape4.as_array4(), Ok(DIMS4));
+    assert_eq!(shape5.as_array5(), Ok(DIMS5));
+    assert_eq!(shape6.as_array6(), Ok(DIMS6));
+    assert_eq!(shape7.as_array7(), Ok(DIMS7));
+    assert_eq!(shape8.as_array8(), Ok(DIMS8));
 
     // Checking only neighboring parameters.
-    assert!(shape0.as_array::<1>().is_err());
-    assert!(shape1.as_array::<0>().is_err());
-    assert!(shape1.as_array::<2>().is_err());
-    assert!(shape2.as_array::<1>().is_err());
-    assert!(shape2.as_array::<3>().is_err());
-    assert!(shape3.as_array::<2>().is_err());
-    assert!(shape3.as_array::<4>().is_err());
-    assert!(shape4.as_array::<3>().is_err());
-    assert!(shape4.as_array::<5>().is_err());
-    assert!(shape5.as_array::<4>().is_err());
-    assert!(shape5.as_array::<6>().is_err());
-    assert!(shape6.as_array::<5>().is_err());
-    assert!(shape6.as_array::<7>().is_err());
-    assert!(shape7.as_array::<6>().is_err());
-    assert!(shape7.as_array::<8>().is_err());
-    assert!(shape8.as_array::<7>().is_err());
-    assert!(shape8.as_array::<9>().is_err());
+    assert!(shape0.as_array1().is_err());
+    assert!(shape1.as_array0().is_err());
+    assert!(shape1.as_array2().is_err());
+    assert!(shape2.as_array1().is_err());
+    assert!(shape2.as_array3().is_err());
+    assert!(shape3.as_array2().is_err());
+    assert!(shape3.as_array4().is_err());
+    assert!(shape4.as_array3().is_err());
+    assert!(shape4.as_array5().is_err());
+    assert!(shape5.as_array4().is_err());
+    assert!(shape5.as_array6().is_err());
+    assert!(shape6.as_array5().is_err());
+    assert!(shape6.as_array7().is_err());
+    assert!(shape7.as_array6().is_err());
+    assert!(shape7.as_array8().is_err());
+    assert!(shape8.as_array7().is_err());
 }
 
 #[test]
