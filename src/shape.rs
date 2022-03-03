@@ -1,7 +1,7 @@
 use crate::error::Error;
 use crate::result::Result;
 use std::fmt;
-use std::mem::size_of;
+use std::mem::{size_of, MaybeUninit};
 
 /// Maximum number of dimensions.
 const MAX_NUM_DIMENSIONS: usize = 8;
@@ -90,6 +90,25 @@ impl Shape {
             num_dimensions,
             dimensions: actual_dimensions,
             num_elements,
+        }
+    }
+
+    /// Obtains dimensions as an array.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok([usize; N])` - Array representation of dimensions.
+    /// * `Err(Error)` - The shape is not N-dimensional.
+    pub fn as_array<const N: usize>(&self) -> Result<[usize; N]> {
+        if N == self.num_dimensions {
+            let mut v = MaybeUninit::<[usize; N]>::uninit();
+            unsafe { &mut *v.as_mut_ptr() }.copy_from_slice(&self.dimensions[..N]);
+            Ok(unsafe { v.assume_init() })
+        } else {
+            Err(Error::InvalidLength(format!(
+                "Requested dimensions of length {}, but the shape is {}-dimensional",
+                N, self.num_dimensions
+            )))
         }
     }
 
