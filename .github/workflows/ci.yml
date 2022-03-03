@@ -10,8 +10,8 @@ on:
       - "*"
 
 jobs:
-  check:
-    name: check
+  check-all-features:
+    name: "Check: all features"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -23,8 +23,21 @@ jobs:
           command: check
           args: --all-features
 
-  test:
-    name: test
+  check-no-default-features:
+    name: "Check: no default features"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --no-default-features
+
+  test-all-features:
+    name: "Test: all features"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -35,9 +48,25 @@ jobs:
         with:
           command: test
           args: --all-features
+<<<<<<< HEAD
+=======
+
+  test-no-default-features:
+    name: "Test: no default features"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-default-features
+>>>>>>> develop
 
   fmt:
-    name: rustfmt
+    name: "Format"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -50,8 +79,8 @@ jobs:
           command: fmt
           args: --all -- --check
 
-  clippy:
-    name: clippy
+  clippy-all-features:
+    name: "Clippy: all features"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -63,3 +92,21 @@ jobs:
         with:
           command: clippy
           args: --all-features -- -D warnings
+
+  clippy-no-default-features:
+    name: "Clippy: no default features"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: rustup component add clippy
+      - uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+<<<<<<< HEAD
+          args: --all-features -- -D warnings
+=======
+          args: --no-default-features -- -D warnings
+>>>>>>> develop
