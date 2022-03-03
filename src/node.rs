@@ -3,6 +3,7 @@ use crate::error::Error;
 use crate::graph::Graph;
 use crate::hardware::Hardware;
 use crate::operator;
+use crate::result::Result;
 use crate::shape::Shape;
 use std::cell::RefCell;
 use std::fmt;
@@ -42,10 +43,7 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
         )
     }
 
-    pub fn check_graph(
-        &self,
-        others: &[&Self],
-    ) -> crate::result::Result<&'g RefCell<Graph<'hw, 'op>>> {
+    pub fn check_graph(&self, others: &[&Self]) -> Result<&'g RefCell<Graph<'hw, 'op>>> {
         others
             .iter()
             .all(|&o| ptr::eq(self.graph, o.graph))
@@ -129,8 +127,8 @@ impl<'hw: 'op, 'op: 'g, 'g> Eq for Node<'hw, 'op, 'g> {}
 
 /// Directly obtaining a scalar value from a node.
 impl<'hw: 'op, 'op: 'g, 'g> TryFrom<Node<'hw, 'op, 'g>> for f32 {
-    type Error = crate::error::Error;
-    fn try_from(node: Node<'hw, 'op, 'g>) -> Result<Self, Self::Error> {
+    type Error = Error;
+    fn try_from(node: Node<'hw, 'op, 'g>) -> Result<Self> {
         node.calculate()?.get_scalar_f32()
     }
 }
