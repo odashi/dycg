@@ -1,10 +1,31 @@
 use crate::error::Error;
 use crate::result::Result;
 use std::fmt;
-use std::mem::size_of;
+use std::mem::{size_of, transmute, MaybeUninit};
 
 /// Maximum number of dimensions.
 const MAX_NUM_DIMENSIONS: usize = 8;
+
+/// Macro to define as_arrayN().
+macro_rules! define_as_array {
+    ( $name:ident, $n:expr ) => {
+        pub fn $name(&self) -> Result<[usize; $n]> {
+            if self.num_dimensions == $n {
+                let mut data: [MaybeUninit<usize>; $n] =
+                    unsafe { MaybeUninit::uninit().assume_init() };
+                for (dest, src) in data.iter_mut().zip(self.dimensions.iter()) {
+                    dest.write(*src);
+                }
+                Ok(unsafe { transmute::<_, [usize; $n]>(data) })
+            } else {
+                Err(Error::InvalidLength(format!(
+                    "Requested dimensions of length {}, but the shape is {}-dimensional",
+                    $n, self.num_dimensions
+                )))
+            }
+        }
+    };
+}
 
 /// Shape of a value.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -92,6 +113,17 @@ impl Shape {
             num_elements,
         }
     }
+
+    // as_arrayN() definitions.
+    define_as_array!(as_array0, 0);
+    define_as_array!(as_array1, 1);
+    define_as_array!(as_array2, 2);
+    define_as_array!(as_array3, 3);
+    define_as_array!(as_array4, 4);
+    define_as_array!(as_array5, 5);
+    define_as_array!(as_array6, 6);
+    define_as_array!(as_array7, 7);
+    define_as_array!(as_array8, 8);
 
     /// Returns the number of dimensions of this shape.
     ///
