@@ -1,4 +1,4 @@
-use crate::array::Array;
+use crate::array::{Array, IntoArray};
 use crate::error::Error;
 use crate::graph::Graph;
 use crate::hardware::Hardware;
@@ -34,9 +34,9 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
             graph
                 .borrow_mut()
                 .add_step(
-                    Box::new(operator::constant::Constant::new(Array::scalar_f32(
-                        hardware, value,
-                    ))),
+                    Box::new(operator::constant::Constant::new(
+                        value.into_array(hardware),
+                    )),
                     vec![],
                 )
                 .unwrap(),

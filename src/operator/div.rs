@@ -47,6 +47,7 @@ impl Gradient for DivGrad {
 
 #[cfg(test)]
 mod tests {
+    use crate::array::IntoArray;
     use crate::hardware::cpu::CpuHardware;
     use crate::operator::div::*;
 
@@ -93,9 +94,9 @@ mod tests {
     fn test_perform() {
         let hw = RefCell::new(CpuHardware::new());
         let op = Div::new();
-        let lhs = Array::scalar_f32(&hw, 1.);
-        let rhs = Array::scalar_f32(&hw, 2.);
-        let expected = Array::scalar_f32(&hw, 0.5);
+        let lhs = 1f32.into_array(&hw);
+        let rhs = 2f32.into_array(&hw);
+        let expected = (0.5f32).into_array(&hw);
         let observed = op.perform(&[&lhs, &rhs]).unwrap();
         assert_eq!(observed.shape(), expected.shape());
         assert_eq!(observed.get_scalar_f32(), expected.get_scalar_f32());

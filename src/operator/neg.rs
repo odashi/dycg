@@ -46,6 +46,7 @@ impl Gradient for NegGrad {
 
 #[cfg(test)]
 mod tests {
+    use crate::array::IntoArray;
     use crate::hardware::cpu::CpuHardware;
     use crate::operator::neg::*;
 
@@ -78,8 +79,8 @@ mod tests {
     fn test_perform() {
         let hw = RefCell::new(CpuHardware::new());
         let op = Neg::new();
-        let input = Array::scalar_f32(&hw, 42.);
-        let expected = Array::scalar_f32(&hw, -42.);
+        let input = 42f32.into_array(&hw);
+        let expected = (-42f32).into_array(&hw);
         let observed = op.perform(&[&input]).unwrap();
         assert_eq!(observed.shape(), expected.shape());
         assert_eq!(observed.get_scalar_f32(), expected.get_scalar_f32());
