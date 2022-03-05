@@ -250,13 +250,11 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
             }
         }
 
-        if let ArrayPlaceholder::Assigned(ref array) =
-            unsafe { self.steps.get_unchecked(target) }.output
-        {
-            return Ok(array.clone());
-        }
-
-        panic!("Target step could not be calculated for some reason.");
+        Ok(unsafe { self.steps.get_unchecked(target) }
+            .output
+            .array()
+            .unwrap()
+            .clone())
     }
 }
 
