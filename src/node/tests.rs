@@ -27,7 +27,7 @@ fn test_steps() {
         assert_eq!(g.get_step(2).unwrap().operator.name(), "Add");
     }
 
-    let retval = ret.calculate().unwrap();
+    let retval = ret.calculate();
     assert_eq!(*retval.shape(), Shape::new([]));
     assert_eq!(retval.get_scalar_f32(), Ok(3.));
 }
@@ -45,7 +45,7 @@ fn test_neg() {
     assert!(ptr::eq(src.hardware(), &hw));
     assert!(ptr::eq(dest.hardware(), &hw));
 
-    assert_eq!(dest.calculate().unwrap().get_scalar_f32(), Ok(-42.));
+    assert_eq!(dest.calculate().get_scalar_f32(), Ok(-42.));
 }
 
 #[test]
@@ -64,7 +64,7 @@ fn test_add() {
     assert!(ptr::eq(rhs.hardware(), &hw));
     assert!(ptr::eq(ret.hardware(), &hw));
 
-    assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(3.));
+    assert_eq!(ret.calculate().get_scalar_f32(), Ok(3.));
 }
 
 #[test]
@@ -83,7 +83,7 @@ fn test_sub() {
     assert!(ptr::eq(rhs.hardware(), &hw));
     assert!(ptr::eq(ret.hardware(), &hw));
 
-    assert_eq!(ret.calculate().unwrap().get_scalar_f32(), Ok(-1.));
+    assert_eq!(ret.calculate().get_scalar_f32(), Ok(-1.));
 }
 
 #[test]
@@ -141,7 +141,7 @@ fn test_fill_0() {
     let ret = Node::fill(&g, &hw, Shape::new([0]), 123.);
     assert_eq!(ret.shape(), Shape::new([0]));
     assert!(ptr::eq(ret.hardware(), &hw));
-    assert_eq!(ret.calculate().unwrap().get_values_f32(), vec![]);
+    assert_eq!(ret.calculate().get_values_f32(), vec![]);
 }
 
 #[test]
@@ -151,10 +151,7 @@ fn test_fill_n() {
     let ret = Node::fill(&g, &hw, Shape::new([3]), 123.);
     assert_eq!(ret.shape(), Shape::new([3]));
     assert!(ptr::eq(ret.hardware(), &hw));
-    assert_eq!(
-        ret.calculate().unwrap().get_values_f32(),
-        vec![123., 123., 123.]
-    );
+    assert_eq!(ret.calculate().get_values_f32(), vec![123., 123., 123.]);
 }
 
 #[test]

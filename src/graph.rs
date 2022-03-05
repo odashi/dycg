@@ -186,11 +186,9 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
     /// # Returns
     ///
     /// * Calculated/cached value associated to `target`.
-    pub(crate) fn calculate(&mut self, target: usize) -> Result<Array<'hw>> {
+    pub(crate) fn calculate(&mut self, target: usize) -> Array<'hw> {
         // Avoiding an edge case: inner step_ids should be correct, but `target` is not constrained.
-        if target >= self.steps.len() {
-            return Err(Error::InvalidNode(format!("Invalid step ID: {}", target)));
-        }
+        assert!(target < self.steps.len(), "Invalid step ID: {}", target);
 
         // Actions for the push-down automaton representing the following procedure:
         /*
@@ -251,11 +249,11 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
         }
 
         // The `target` step must own a calculated value.
-        Ok(unsafe { self.steps.get_unchecked(target) }
+        unsafe { self.steps.get_unchecked(target) }
             .output
             .array()
             .unwrap()
-            .clone())
+            .clone()
     }
 }
 
