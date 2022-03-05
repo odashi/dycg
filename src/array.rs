@@ -93,16 +93,16 @@ impl<'hw> Array<'hw> {
     ///
     /// * `Ok(())` - New value is set correctly.
     /// * `Err(Error)` - Array is not a scalar.
-    fn set_scalar_f32(&mut self, value: f32) -> Result<()> {
-        self.shape.check_is_scalar()?;
-        unsafe {
-            self.hardware().borrow_mut().copy_host_to_hardware(
-                (&value as *const f32) as *const u8,
-                self.buffer.as_mut_handle(),
-                mem::size_of::<f32>(),
-            )
-        }
-        Ok(())
+    ///
+    /// # Safety
+    ///
+    /// This function can be called for only scalar (0-dimensional) `Array`s.
+    unsafe fn set_scalar_f32(&mut self, value: f32) {
+        self.hardware().borrow_mut().copy_host_to_hardware(
+            (&value as *const f32) as *const u8,
+            self.buffer.as_mut_handle(),
+            mem::size_of::<f32>(),
+        )
     }
 
     /// Obtains scalar value of this array.
@@ -410,9 +410,11 @@ pub trait IntoArray {
 
 impl IntoArray for f32 {
     fn into_array(self, hardware: &RefCell<dyn Hardware>) -> Array {
-        let mut array = unsafe { Array::raw(hardware, Shape::new([])) };
-        array.set_scalar_f32(self).unwrap();
-        array
+        unsafe {
+            let mut array = Array::raw(hardware, Shape::new([]));
+            array.set_scalar_f32(self);
+            array
+        }
     }
 }
 

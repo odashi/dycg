@@ -68,26 +68,15 @@ fn test_shape() {
 }
 
 #[test]
-fn test_set_scalar_f32_scalar() {
+fn test_set_scalar_f32() {
     let hw = RefCell::new(CpuHardware::new());
-    let mut array = unsafe { Array::raw(&hw, Shape::new([])) };
-    array.set_scalar_f32(123.).unwrap();
+    let array = unsafe {
+        let mut array = Array::raw(&hw, Shape::new([]));
+        array.set_scalar_f32(123.);
+        array
+    };
     assert_eq!(array.get_scalar_f32(), Ok(123.));
     assert_eq!(array.get_values_f32(), vec![123.]);
-}
-
-#[test]
-fn test_set_scalar_f32_1() {
-    let hw = RefCell::new(CpuHardware::new());
-    let mut array = unsafe { Array::raw(&hw, Shape::new([1])) };
-    assert!(array.set_scalar_f32(123.).is_err());
-}
-
-#[test]
-fn test_set_scalar_f32_n() {
-    let hw = RefCell::new(CpuHardware::new());
-    let mut array = unsafe { Array::raw(&hw, Shape::new([42])) };
-    assert!(array.set_scalar_f32(123.).is_err());
 }
 
 #[test]
