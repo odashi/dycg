@@ -75,7 +75,7 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
     }
 
     pub fn calculate(&self) -> Array<'hw> {
-        self.graph.borrow_mut().calculate(self.step_id)
+        self.graph.borrow_mut().calculate(self.step_id).clone()
     }
 
     /// Registers `Fill` operation to the graph.

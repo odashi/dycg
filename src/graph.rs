@@ -186,7 +186,7 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
     /// # Returns
     ///
     /// * Calculated/cached value associated to `target`.
-    pub(crate) fn calculate(&mut self, target: usize) -> Array<'hw> {
+    pub(crate) fn calculate(&mut self, target: usize) -> &Array<'hw> {
         // Avoiding an edge case: inner step_ids should be correct, but `target` is not constrained.
         assert!(target < self.steps.len(), "Invalid step ID: {}", target);
 
@@ -253,7 +253,6 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
             .output
             .array()
             .unwrap()
-            .clone()
     }
 }
 
