@@ -250,6 +250,7 @@ impl<'hw: 'op, 'op> Graph<'hw, 'op> {
             }
         }
 
+        // The `target` step must own a calculated value.
         Ok(unsafe { self.steps.get_unchecked(target) }
             .output
             .array()
