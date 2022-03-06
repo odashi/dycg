@@ -8,7 +8,7 @@ macro_rules! define_try_from_node {
         impl<'hw: 'op, 'op: 'g, 'g> TryFrom<Node<'hw, 'op, 'g>> for $dest {
             type Error = Error;
             fn try_from(src: Node<'hw, 'op, 'g>) -> Result<Self> {
-                Self::try_from(&src.calculate()?)
+                Self::try_from(&src.calculate())
             }
         }
     };
