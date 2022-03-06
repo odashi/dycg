@@ -74,8 +74,8 @@ impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
             .hardware()
     }
 
-    pub fn calculate(&self) -> crate::result::Result<Array<'hw>> {
-        self.graph.borrow_mut().calculate(self.step_id)
+    pub fn calculate(&self) -> Array<'hw> {
+        self.graph.borrow_mut().calculate(self.step_id).clone()
     }
 
     /// Registers `Fill` operation to the graph.
@@ -129,7 +129,7 @@ impl<'hw: 'op, 'op: 'g, 'g> Eq for Node<'hw, 'op, 'g> {}
 impl<'hw: 'op, 'op: 'g, 'g> TryFrom<Node<'hw, 'op, 'g>> for f32 {
     type Error = Error;
     fn try_from(node: Node<'hw, 'op, 'g>) -> Result<Self> {
-        node.calculate()?.get_scalar_f32()
+        node.calculate().get_scalar_f32()
     }
 }
 
