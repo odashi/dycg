@@ -10,6 +10,7 @@ macro_rules! define_into_array {
                 Array::constant_f32(
                     hardware,
                     Shape::from_slice(self.shape()),
+                    // `Array` supports only data with the row-major order.
                     self.as_standard_layout().as_slice().unwrap(),
                 )
                 .unwrap()
