@@ -328,3 +328,6 @@ mod tests;
 
 #[cfg(test)]
 mod grad_tests;
+
+#[cfg(feature = "ndarray-support")]
+mod convert_ndarray;
