@@ -5,6 +5,16 @@ pub(crate) struct Constant<'hw> {
 }
 
 impl<'hw> Constant<'hw> {
+    /// Creates a new `Constant` object.
+    ///
+    /// # Arguments
+    ///
+    /// * `value`: An `Array` object holding the values.
+    ///
+    /// # Returns
+    ///
+    /// A new `Constant` object.
+    #[allow(dead_code)] // This function is used later to bring ndarrays into Graph.
     pub(crate) fn new(value: Array<'hw>) -> Self {
         Self { value }
     }

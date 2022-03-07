@@ -5,7 +5,7 @@ use crate::node::*;
 fn test_try_into_array0() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
-    let src = Node::from_scalar(&g, &hw, 42.);
+    let src = 42f32.into_node(&g, &hw);
     let dest = ndarray::Array0::<f32>::try_from(src).unwrap();
     assert_eq!(dest, ndarray::arr0(42.));
 }
