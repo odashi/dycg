@@ -93,16 +93,16 @@ impl<'hw> Array<'hw> {
     ///
     /// * `Ok(())` - New value is set correctly.
     /// * `Err(Error)` - Array is not a scalar.
-    pub fn set_scalar_f32(&mut self, value: f32) -> Result<()> {
-        self.shape.check_is_scalar()?;
-        unsafe {
-            self.hardware().borrow_mut().copy_host_to_hardware(
-                (&value as *const f32) as *const u8,
-                self.buffer.as_mut_handle(),
-                mem::size_of::<f32>(),
-            )
-        }
-        Ok(())
+    ///
+    /// # Safety
+    ///
+    /// This function can be called for only scalar (0-dimensional) `Array`s.
+    unsafe fn set_scalar_f32(&mut self, value: f32) {
+        self.hardware().borrow_mut().copy_host_to_hardware(
+            (&value as *const f32) as *const u8,
+            self.buffer.as_mut_handle(),
+            mem::size_of::<f32>(),
+        )
     }
 
     /// Obtains scalar value of this array.
@@ -140,7 +140,7 @@ impl<'hw> Array<'hw> {
     /// * `Ok(())` - Values are set correctly.
     /// * `Err(Error)` - Length of the specified values is different with the size of the
     ///   underlying buffer.
-    pub fn set_values_f32(&mut self, values: &[f32]) -> Result<()> {
+    fn set_values_f32(&mut self, values: &[f32]) -> Result<()> {
         if values.len() != self.shape.num_elements() {
             return Err(Error::InvalidLength(format!(
                 "Values has a different length. Required {}, but got {}.",
@@ -177,22 +177,6 @@ impl<'hw> Array<'hw> {
             values.set_len(num_elements);
         }
         values
-    }
-
-    /// Creates a new `Array` with 0-dimensional shape on the specific hardware.
-    ///
-    /// # Arguments
-    ///
-    /// * `hardware`: `Hardware` object to host the value.
-    /// * `value`: Value of the resulting array.
-    ///
-    /// # Returns
-    ///
-    /// A new `Array` object representing a scalar value.
-    pub fn scalar_f32(hardware: &'hw RefCell<dyn Hardware>, value: f32) -> Self {
-        let mut array = unsafe { Self::raw(hardware, Shape::new([])) };
-        array.set_scalar_f32(value).unwrap();
-        array
     }
 
     /// Creates a new `Array` with arbitrary shape on the specific hardware.
@@ -406,6 +390,30 @@ impl<'hw> Clone for Array<'hw> {
                     self.shape().memory_size::<f32>(),
                 );
             cloned
+        }
+    }
+}
+
+/// Trait to convert something into Array.
+pub trait IntoArray {
+    /// Generates an `Array` representing the same values of `self`.
+    ///
+    /// # Arguments
+    ///
+    /// * `hardware` - A reference to the `Hardware` to own the buffer.
+    ///
+    /// # Returns
+    ///
+    /// A new `Array` object.
+    fn into_array(self, hardware: &RefCell<dyn Hardware>) -> Array;
+}
+
+impl IntoArray for f32 {
+    fn into_array(self, hardware: &RefCell<dyn Hardware>) -> Array {
+        unsafe {
+            let mut array = Array::raw(hardware, Shape::new([]));
+            array.set_scalar_f32(self);
+            array
         }
     }
 }

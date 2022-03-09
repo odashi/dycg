@@ -68,26 +68,15 @@ fn test_shape() {
 }
 
 #[test]
-fn test_set_scalar_f32_scalar() {
+fn test_set_scalar_f32() {
     let hw = RefCell::new(CpuHardware::new());
-    let mut array = unsafe { Array::raw(&hw, Shape::new([])) };
-    array.set_scalar_f32(123.).unwrap();
+    let array = unsafe {
+        let mut array = Array::raw(&hw, Shape::new([]));
+        array.set_scalar_f32(123.);
+        array
+    };
     assert_eq!(array.get_scalar_f32(), Ok(123.));
     assert_eq!(array.get_values_f32(), vec![123.]);
-}
-
-#[test]
-fn test_set_scalar_f32_1() {
-    let hw = RefCell::new(CpuHardware::new());
-    let mut array = unsafe { Array::raw(&hw, Shape::new([1])) };
-    assert!(array.set_scalar_f32(123.).is_err());
-}
-
-#[test]
-fn test_set_scalar_f32_n() {
-    let hw = RefCell::new(CpuHardware::new());
-    let mut array = unsafe { Array::raw(&hw, Shape::new([42])) };
-    assert!(array.set_scalar_f32(123.).is_err());
 }
 
 #[test]
@@ -144,7 +133,7 @@ fn test_set_values_f32_n() {
 #[test]
 fn test_scalar_f32() {
     let hw = RefCell::new(CpuHardware::new());
-    let array = Array::scalar_f32(&hw, 123.);
+    let array = 123f32.into_array(&hw);
     assert_eq!(array.shape, Shape::new([]));
     assert_eq!(array.get_scalar_f32(), Ok(123.));
     assert_eq!(array.get_values_f32(), vec![123.]);
@@ -263,7 +252,7 @@ fn test_fill_colocated_f32_n() {
 #[test]
 fn test_elementwise_unary_f32_scalar() {
     let hw = RefCell::new(CpuHardware::new());
-    let x = Array::scalar_f32(&hw, 123.);
+    let x = 123f32.into_array(&hw);
 
     let y = x.elementwise_neg_f32();
     assert_eq!(y.shape, Shape::new([]));
@@ -296,8 +285,8 @@ fn test_elementwise_unary_f32_n() {
 #[test]
 fn test_elementwise_binary_f32_scalar_scalar() {
     let hw = RefCell::new(CpuHardware::new());
-    let a = Array::scalar_f32(&hw, 111.);
-    let b = Array::scalar_f32(&hw, 222.);
+    let a = 111f32.into_array(&hw);
+    let b = 222f32.into_array(&hw);
 
     let y = a.elementwise_add_f32(&b).unwrap();
     assert_eq!(y.shape, Shape::new([]));
@@ -323,7 +312,7 @@ fn test_elementwise_binary_f32_scalar_scalar() {
 #[test]
 fn test_elementwise_binary_f32_scalar_self() {
     let hw = RefCell::new(CpuHardware::new());
-    let a = Array::scalar_f32(&hw, 111.);
+    let a = 111f32.into_array(&hw);
 
     let y = a.elementwise_add_f32(&a).unwrap();
     assert_eq!(y.shape, Shape::new([]));
@@ -456,7 +445,7 @@ fn test_elementwise_binary_f32_n_self() {
 #[test]
 fn test_elementwise_binary_f32_scalar_0() {
     let hw = RefCell::new(CpuHardware::new());
-    let a = Array::scalar_f32(&hw, 111.);
+    let a = 111f32.into_array(&hw);
     let b = Array::constant_f32(&hw, Shape::new([0]), &[]).unwrap();
 
     assert!(a.elementwise_add_f32(&b).is_err());
@@ -473,7 +462,7 @@ fn test_elementwise_binary_f32_scalar_0() {
 #[test]
 fn test_elementwise_binary_f32_scalar_1() {
     let hw = RefCell::new(CpuHardware::new());
-    let a = Array::scalar_f32(&hw, 111.);
+    let a = 111f32.into_array(&hw);
     let b = Array::constant_f32(&hw, Shape::new([1]), &[444.]).unwrap();
 
     assert!(a.elementwise_add_f32(&b).is_err());
@@ -490,7 +479,7 @@ fn test_elementwise_binary_f32_scalar_1() {
 #[test]
 fn test_elementwise_binary_f32_scalar_n() {
     let hw = RefCell::new(CpuHardware::new());
-    let a = Array::scalar_f32(&hw, 111.);
+    let a = 111f32.into_array(&hw);
     let b = Array::constant_f32(&hw, Shape::new([3]), &[444., 555., 666.]).unwrap();
 
     assert!(a.elementwise_add_f32(&b).is_err());
@@ -559,8 +548,8 @@ fn test_elementwise_binary_f32_1_n() {
 fn test_elementwise_binary_f32_colocation() {
     let hw1 = RefCell::new(CpuHardware::new());
     let hw2 = RefCell::new(CpuHardware::new());
-    let a = Array::scalar_f32(&hw1, 123.);
-    let b = Array::scalar_f32(&hw2, 123.);
+    let a = 123f32.into_array(&hw1);
+    let b = 123f32.into_array(&hw2);
 
     assert!(a.elementwise_add_f32(&b).is_err());
     assert!(a.elementwise_sub_f32(&b).is_err());
@@ -576,7 +565,7 @@ fn test_elementwise_binary_f32_colocation() {
 #[test]
 fn test_clone_scalar() {
     let hw = RefCell::new(CpuHardware::new());
-    let x = Array::scalar_f32(&hw, 123.);
+    let x = 123f32.into_array(&hw);
     let y = x.clone();
     assert_eq!(y.shape, Shape::new([]));
     assert!(ptr::eq(y.hardware(), &hw));
