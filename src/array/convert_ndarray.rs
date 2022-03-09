@@ -1,7 +1,7 @@
 use crate::array::*;
 
 // ndarray has separate definitions of Array0 - Array6 although they are based on some generics.
-// We also provide separate definitions of TryFrom<&Array> for each ArrayN to fit the same manner.
+// We also provide separate definitions of TryFrom<&Array> and IntoArray for each ArrayN to fit the same manner.
 
 macro_rules! define_into_array {
     ( $src_ty:ty ) => {
