@@ -1,4 +1,4 @@
-use crate::array::{Array, IntoArray};
+use crate::array::Array;
 use crate::error::Error;
 use crate::graph::Graph;
 use crate::hardware::Hardware;
