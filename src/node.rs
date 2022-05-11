@@ -1,4 +1,4 @@
-use crate::array::{Array, IntoArray};
+use crate::array::Array;
 use crate::error::Error;
 use crate::graph::Graph;
 use crate::hardware::Hardware;
@@ -22,25 +22,6 @@ pub struct Node<'hw: 'op, 'op: 'g, 'g> {
 impl<'hw: 'op, 'op: 'g, 'g> Node<'hw, 'op, 'g> {
     fn new(graph: &'g RefCell<Graph<'hw, 'op>>, step_id: usize) -> Self {
         Self { graph, step_id }
-    }
-
-    pub fn from_scalar(
-        graph: &'g RefCell<Graph<'hw, 'op>>,
-        hardware: &'hw RefCell<dyn Hardware>,
-        value: f32,
-    ) -> Self {
-        Self::new(
-            graph,
-            graph
-                .borrow_mut()
-                .add_step(
-                    Box::new(operator::constant::Constant::new(
-                        value.into_array(hardware),
-                    )),
-                    vec![],
-                )
-                .unwrap(),
-        )
     }
 
     pub fn check_graph(&self, others: &[&Self]) -> Result<&'g RefCell<Graph<'hw, 'op>>> {
@@ -125,7 +106,48 @@ impl<'hw: 'op, 'op: 'g, 'g> PartialEq for Node<'hw, 'op, 'g> {
 
 impl<'hw: 'op, 'op: 'g, 'g> Eq for Node<'hw, 'op, 'g> {}
 
-/// Directly obtaining a scalar value from a node.
+/// Trait to convert something into Node.
+pub trait IntoNode {
+    /// Generates an `Node` representing the same values of `self`.
+    ///
+    /// # Arguments
+    ///
+    /// * `graph` - A reference to the `Graph` to register the operation.
+    /// * `hardware` - A reference to the `Hardware` to own the value.
+    ///
+    /// # Returns
+    ///
+    /// A new `Node` object.
+    fn into_node<'hw: 'op, 'op: 'g, 'g>(
+        self,
+        graph: &'g RefCell<Graph<'hw, 'op>>,
+        hardware: &'hw RefCell<dyn Hardware>,
+    ) -> Node<'hw, 'op, 'g>;
+}
+
+/// Directly obtaining a Node from a scalar value.
+impl IntoNode for f32 {
+    fn into_node<'hw: 'op, 'op: 'g, 'g>(
+        self,
+        graph: &'g RefCell<Graph<'hw, 'op>>,
+        hardware: &'hw RefCell<dyn Hardware>,
+    ) -> Node<'hw, 'op, 'g> {
+        Node::new(
+            graph,
+            graph
+                .borrow_mut()
+                .add_step(
+                    // Using Fill here: instanciating Fill is cheaper than Constant because it does
+                    // not hold Array values.
+                    Box::new(operator::fill::Fill::new(hardware, Shape::new([]), self)),
+                    vec![],
+                )
+                .unwrap(),
+        )
+    }
+}
+
+/// Directly obtaining a scalar value from a Node.
 impl<'hw: 'op, 'op: 'g, 'g> TryFrom<Node<'hw, 'op, 'g>> for f32 {
     type Error = Error;
     fn try_from(node: Node<'hw, 'op, 'g>) -> Result<Self> {

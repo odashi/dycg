@@ -6,7 +6,7 @@ fn test_empty() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let x = Node::from_scalar(&g, &hw, 42.);
+    let x = 42f32.into_node(&g, &hw);
 
     let gx = grad(x, &[]);
     assert!(gx.is_empty());
@@ -17,7 +17,7 @@ fn test_self() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let x = Node::from_scalar(&g, &hw, 42.);
+    let x = 42f32.into_node(&g, &hw);
 
     let gx = grad(x, &[x]);
     assert_eq!(gx.len(), 1);
@@ -34,8 +34,8 @@ fn test_unrelated() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let x = Node::from_scalar(&g, &hw, 42.);
-    let y = Node::from_scalar(&g, &hw, 42.);
+    let x = 42f32.into_node(&g, &hw);
+    let y = 42f32.into_node(&g, &hw);
 
     let gx = grad(y, &[x]);
     assert_eq!(gx.len(), 1);
@@ -52,7 +52,7 @@ fn test_neg() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let x = Node::from_scalar(&g, &hw, 42.);
+    let x = 42f32.into_node(&g, &hw);
     let y = -x;
 
     let gx = grad(y, &[x]);
@@ -70,8 +70,8 @@ fn test_add() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let a = Node::from_scalar(&g, &hw, 123.);
-    let b = Node::from_scalar(&g, &hw, 456.);
+    let a = 123f32.into_node(&g, &hw);
+    let b = 456f32.into_node(&g, &hw);
     let y = a + b;
 
     let gx = grad(y, &[a, b]);
@@ -93,8 +93,8 @@ fn test_sub() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let a = Node::from_scalar(&g, &hw, 123.);
-    let b = Node::from_scalar(&g, &hw, 456.);
+    let a = 123f32.into_node(&g, &hw);
+    let b = 456f32.into_node(&g, &hw);
     let y = a - b;
 
     let gx = grad(y, &[a, b]);
@@ -116,8 +116,8 @@ fn test_mul() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let a = Node::from_scalar(&g, &hw, 123.);
-    let b = Node::from_scalar(&g, &hw, 456.);
+    let a = 123f32.into_node(&g, &hw);
+    let b = 456f32.into_node(&g, &hw);
     let y = a * b;
 
     let gx = grad(y, &[a, b]);
@@ -139,7 +139,7 @@ fn test_mul_quadratic() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let x = Node::from_scalar(&g, &hw, 123.);
+    let x = 123f32.into_node(&g, &hw);
     // This calculation generates a diamond dependency between x and y
     // so that gradient summation x + x is happened during backpropagation.
     let y = x * x;
@@ -159,8 +159,8 @@ fn test_div() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let a = Node::from_scalar(&g, &hw, 3.);
-    let b = Node::from_scalar(&g, &hw, 2.);
+    let a = 3f32.into_node(&g, &hw);
+    let b = 2f32.into_node(&g, &hw);
     let y = a / b;
 
     let gx = grad(y, &[a, b]);
@@ -182,9 +182,9 @@ fn test_multiple_computation() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let a = Node::from_scalar(&g, &hw, 1.);
-    let b = Node::from_scalar(&g, &hw, 2.);
-    let c = Node::from_scalar(&g, &hw, 3.);
+    let a = 1f32.into_node(&g, &hw);
+    let b = 2f32.into_node(&g, &hw);
+    let c = 3f32.into_node(&g, &hw);
     let y = a + -b * c;
 
     let gx = grad(y, &[a, b, c]);
@@ -210,7 +210,7 @@ fn test_higher_order_gradients() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let x = Node::from_scalar(&g, &hw, 5.);
+    let x = 5f32.into_node(&g, &hw);
     let y = x * x * x;
 
     let gx1 = grad(y, &[x])[0];
@@ -242,8 +242,8 @@ fn test_gradient_of_multiple_variables() {
     let hw = RefCell::new(CpuHardware::new());
     let g = RefCell::new(Graph::new());
 
-    let a = Node::from_scalar(&g, &hw, 2.);
-    let b = Node::from_scalar(&g, &hw, 3.);
+    let a = 2f32.into_node(&g, &hw);
+    let b = 3f32.into_node(&g, &hw);
     let y = a * a * b;
 
     let y_a = grad(y, &[a])[0];
@@ -288,7 +288,7 @@ fn test_different_graph() {
     let g1 = RefCell::new(Graph::new());
     let g2 = RefCell::new(Graph::new());
 
-    let x = Node::from_scalar(&g1, &hw, 2.);
-    let y = Node::from_scalar(&g2, &hw, 3.);
+    let x = 1f32.into_node(&g1, &hw);
+    let y = 2f32.into_node(&g2, &hw);
     let _gx = grad(y, &[x])[0];
 }

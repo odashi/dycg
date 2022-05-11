@@ -27,6 +27,30 @@ define_into_array!(&ndarray::Array4<f32>);
 define_into_array!(&ndarray::Array5<f32>);
 define_into_array!(&ndarray::Array6<f32>);
 
+macro_rules! define_into_array {
+    ( $src_ty:ty ) => {
+        impl IntoArray for $src_ty {
+            fn into_array(self, hardware: &RefCell<dyn Hardware>) -> Array {
+                Array::constant_f32(
+                    hardware,
+                    Shape::from_slice(self.shape()),
+                    // `Array` supports only data with the row-major order.
+                    self.as_standard_layout().as_slice().unwrap(),
+                )
+                .unwrap()
+            }
+        }
+    };
+}
+
+define_into_array!(&ndarray::Array0<f32>);
+define_into_array!(&ndarray::Array1<f32>);
+define_into_array!(&ndarray::Array2<f32>);
+define_into_array!(&ndarray::Array3<f32>);
+define_into_array!(&ndarray::Array4<f32>);
+define_into_array!(&ndarray::Array5<f32>);
+define_into_array!(&ndarray::Array6<f32>);
+
 macro_rules! define_try_from_array {
     ( $as_array_fn:ident, $dest_ty:ty ) => {
         impl<'hw> TryFrom<&Array<'hw>> for $dest_ty {
